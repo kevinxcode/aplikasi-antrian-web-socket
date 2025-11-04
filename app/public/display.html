@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Display Antrian</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: Arial, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .display-container { 
+            text-align: center; 
+            padding: 40px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            min-width: 600px;
+        }
+        h1 { 
+            font-size: 48px; 
+            margin-bottom: 40px; 
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .current-number { 
+            font-size: 120px; 
+            font-weight: bold; 
+            margin: 30px 0;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.5);
+            background: rgba(255,255,255,0.2);
+            padding: 40px;
+            border-radius: 15px;
+            border: 3px solid rgba(255,255,255,0.3);
+        }
+        .status-info { 
+            display: flex; 
+            justify-content: space-around; 
+            margin-top: 40px;
+        }
+        .status-item { 
+            background: rgba(255,255,255,0.2);
+            padding: 20px;
+            border-radius: 10px;
+            min-width: 150px;
+        }
+        .status-number { 
+            font-size: 36px; 
+            font-weight: bold; 
+            display: block;
+        }
+        .status-label { 
+            font-size: 16px; 
+            margin-top: 10px;
+            opacity: 0.9;
+        }
+        .waiting-message { 
+            font-size: 24px; 
+            opacity: 0.8;
+            margin: 20px 0;
+        }
+        .blink { 
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+        .queue-preview {
+            margin-top: 30px;
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .queue-preview h3 {
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        .next-numbers {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .next-number {
+            background: rgba(255,255,255,0.2);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="display-container">
+        <h1>SISTEM ANTRIAN</h1>
+        
+        <div id="currentDisplay">
+            <div class="waiting-message">Menunggu Antrian Pertama...</div>
+        </div>
+        
+        <div class="status-info">
+            <div class="status-item">
+                <span class="status-number" id="counter1">000</span>
+                <div class="status-label">Loket 1</div>
+            </div>
+            <div class="status-item">
+                <span class="status-number" id="counter2">000</span>
+                <div class="status-label">Loket 2</div>
+            </div>
+            <div class="status-item">
+                <span class="status-number" id="totalWaiting">0</span>
+                <div class="status-label">Antrian Menunggu</div>
+            </div>
+        </div>
+        
+        <div class="queue-preview" id="queuePreview" style="display: none;">
+            <h3>Antrian Selanjutnya:</h3>
+            <div class="next-numbers" id="nextNumbers"></div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        
+        socket.on('queueUpdated', (data) => {
+            updateDisplay(data);
+        });
+        
+        function updateDisplay(data) {
+            const currentDisplay = document.getElementById('currentDisplay');
+            const totalWaiting = document.getElementById('totalWaiting');
+            const counter1 = document.getElementById('counter1');
+            const counter2 = document.getElementById('counter2');
+            const queuePreview = document.getElementById('queuePreview');
+            const nextNumbers = document.getElementById('nextNumbers');
+            
+            totalWaiting.textContent = data.total;
+            counter1.textContent = data.counters[1].current || '000';
+            counter2.textContent = data.counters[2].current || '000';
+            
+            if (data.called) {
+                const recallText = data.called.recall ? ' (PANGGILAN ULANG)' : '';
+                currentDisplay.innerHTML = `
+                    <div>Nomor Yang Dipanggil${recallText}:</div>
+                    <div class="current-number blink">${data.called.number}</div>
+                    <div class="waiting-message">Silakan Menuju Loket ${data.called.counter}</div>
+                `;
+            } else {
+                currentDisplay.innerHTML = `
+                    <div class="waiting-message">Menunggu Antrian Pertama...</div>
+                `;
+            }
+            
+            // Tampilkan preview antrian selanjutnya
+            if (data.queue.length > 0) {
+                queuePreview.style.display = 'block';
+                const nextFive = data.queue.slice(0, 5);
+                nextNumbers.innerHTML = nextFive.map(item => 
+                    `<div class="next-number">${item.number}</div>`
+                ).join('');
+            } else {
+                queuePreview.style.display = 'none';
+            }
+        }
+        
+        // Auto refresh setiap 30 detik untuk memastikan koneksi
+        setInterval(() => {
+            if (!socket.connected) {
+                location.reload();
+            }
+        }, 30000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  antrian-app:
+    build: ./app
+    container_name: antrian-app
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3000

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Antrian</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #333; margin-bottom: 30px; }
+        .form-section { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; }
+        button { background: #007bff; color: white; padding: 12px 24px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-right: 10px; }
+        button:hover { background: #0056b3; }
+        button.danger { background: #dc3545; }
+        button.danger:hover { background: #c82333; }
+        .status { display: flex; justify-content: space-between; margin-bottom: 20px; }
+        .status-item { text-align: center; padding: 15px; background: #e9ecef; border-radius: 8px; flex: 1; margin: 0 5px; }
+        .status-number { font-size: 24px; font-weight: bold; color: #007bff; }
+        .queue-list { background: #f8f9fa; padding: 20px; border-radius: 8px; }
+        .queue-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: white; margin-bottom: 10px; border-radius: 5px; border-left: 4px solid #007bff; }
+        .queue-number { font-weight: bold; color: #007bff; font-size: 18px; }
+        .current-call { background: #28a745; color: white; padding: 20px; text-align: center; border-radius: 8px; margin-bottom: 20px; font-size: 24px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Sistem Antrian</h1>
+        
+        <div class="status">
+            <div class="status-item">
+                <div class="status-number" id="counter1">000</div>
+                <div>Loket 1</div>
+            </div>
+            <div class="status-item">
+                <div class="status-number" id="counter2">000</div>
+                <div>Loket 2</div>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h3>Tambah Antrian Baru</h3>
+            <div class="form-group">
+                <label for="customerName">Nama (Opsional):</label>
+                <input type="text" id="customerName" placeholder="Masukkan nama...">
+            </div>
+            <button onclick="addQueue()">Ambil Nomor Antrian</button>
+        </div>
+        
+        <div class="form-section">
+            <h3>Panggil Ulang Nomor</h3>
+            <div class="form-group">
+                <label for="recallNumber">Nomor Antrian:</label>
+                <input type="text" id="recallNumber" placeholder="Contoh: 003" maxlength="3">
+            </div>
+            <button onclick="recallNumber(1)">Panggil Ulang ke Loket 1</button>
+            <button onclick="recallNumber(2)">Panggil Ulang ke Loket 2</button>
+        </div>
+        
+        <div class="status">
+            <div class="status-item">
+                <div class="status-number" id="totalQueue">0</div>
+                <div>Total Antrian</div>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-bottom: 20px;">
+            <button onclick="nextQueue(1)">Panggil ke Loket 1</button>
+            <button onclick="nextQueue(2)">Panggil ke Loket 2</button>
+            <button class="danger" onclick="resetQueue()">Reset Antrian</button>
+            <a href="/display" target="_blank">
+                <button style="background: #6c757d;">Buka Display</button>
+            </a>
+        </div>
+        
+        <div class="queue-list">
+            <h3>Daftar Antrian</h3>
+            <div id="queueList">
+                <p>Tidak ada antrian</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        
+        socket.on('queueUpdated', (data) => {
+            updateQueueDisplay(data);
+        });
+        
+        function updateQueueDisplay(data) {
+            document.getElementById('totalQueue').textContent = data.total;
+            document.getElementById('counter1').textContent = data.counters[1].current || '000';
+            document.getElementById('counter2').textContent = data.counters[2].current || '000';
+            
+            const queueList = document.getElementById('queueList');
+            if (data.queue.length === 0) {
+                queueList.innerHTML = '<p>Tidak ada antrian</p>';
+            } else {
+                queueList.innerHTML = data.queue.map(item => `
+                    <div class="queue-item">
+                        <div>
+                            <span class="queue-number">${item.number}</span>
+                            <span> - ${item.name}</span>
+                        </div>
+                        <small>${new Date(item.timestamp).toLocaleTimeString()}</small>
+                    </div>
+                `).join('');
+            }
+        }
+        
+        async function addQueue() {
+            const name = document.getElementById('customerName').value.trim();
+            
+            try {
+                const response = await fetch('/api/add-queue', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    document.getElementById('customerName').value = '';
+                    alert(`Nomor antrian Anda: ${result.queueItem.number}`);
+                }
+            } catch (error) {
+                alert('Gagal menambah antrian');
+            }
+        }
+        
+        async function nextQueue(counter) {
+            try {
+                const response = await fetch('/api/next-queue', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ counter })
+                });
+                const result = await response.json();
+                
+                if (!result.success) {
+                    alert(result.message);
+                }
+            } catch (error) {
+                alert('Gagal memanggil antrian');
+            }
+        }
+        
+        async function recallNumber(counter) {
+            const numberInput = document.getElementById('recallNumber');
+            const number = numberInput.value.trim();
+            
+            if (!number) {
+                alert('Masukkan nomor antrian');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/recall-number', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ number: number, counter: counter })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const text = await response.text();
+                const result = text ? JSON.parse(text) : {};
+                
+                if (result.success) {
+                    numberInput.value = '';
+                    alert(`Nomor ${result.recalled} dipanggil ulang ke Loket ${counter}`);
+                } else {
+                    alert(result.message || 'Gagal memanggil ulang nomor');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        async function resetQueue() {
+            if (confirm('Yakin ingin reset semua antrian?')) {
+                try {
+                    const response = await fetch('/api/reset-queue', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    
+                    const text = await response.text();
+                    const result = text ? JSON.parse(text) : {};
+                    
+                    if (result.success) {
+                        alert('Antrian berhasil direset');
+                    } else {
+                        alert('Gagal reset antrian');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error: ' + error.message);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
