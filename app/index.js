@@ -18,16 +18,28 @@ app.use((req, res, next) => {
 });
 
 // Data antrian
-let queue = [];
+let queueCS = [];
+let queueTeller = [];
 let counters = {
-    1: { current: 0, name: 'Loket 1' },
-    2: { current: 0, name: 'Loket 2' }
+    cs1: { current: '000', name: 'CS 1', type: 'cs' },
+    cs2: { current: '000', name: 'CS 2', type: 'cs' },
+    t1: { current: '000', name: 'Teller 1', type: 'teller' },
+    t2: { current: '000', name: 'Teller 2', type: 'teller' }
 };
-let nextNumber = 1;
+let nextNumberCS = 1;
+let nextNumberTeller = 1;
 
 // Routes
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, 'public', 'menu.html'));
+});
+
+app.get('/ambil-nomor', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'ambil-nomor.html'));
+});
+
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
 app.get('/display', (req, res) => {
@@ -36,21 +48,40 @@ app.get('/display', (req, res) => {
 
 // API Routes
 app.post('/api/add-queue', (req, res) => {
-    const { name } = req.body;
-    const queueItem = {
-        id: Date.now(),
-        number: String(nextNumber++).padStart(3, '0'),
-        name: name || `Antrian ${nextNumber - 1}`,
-        timestamp: new Date()
-    };
+    const { type, name } = req.body;
     
-    queue.push(queueItem);
+    let queueItem, queue, prefix;
     
-    // Broadcast ke semua client
+    if (type === 'teller') {
+        prefix = 'B';
+        queueItem = {
+            id: Date.now(),
+            number: prefix + String(nextNumberTeller++).padStart(3, '0'),
+            name: name || `Teller ${nextNumberTeller - 1}`,
+            timestamp: new Date(),
+            type: 'teller'
+        };
+        queueTeller.push(queueItem);
+        queue = queueTeller;
+    } else {
+        prefix = 'A';
+        queueItem = {
+            id: Date.now(),
+            number: prefix + String(nextNumberCS++).padStart(3, '0'),
+            name: name || `CS ${nextNumberCS - 1}`,
+            timestamp: new Date(),
+            type: 'cs'
+        };
+        queueCS.push(queueItem);
+        queue = queueCS;
+    }
+    
     io.emit('queueUpdated', {
-        queue: queue,
+        queueCS: queueCS,
+        queueTeller: queueTeller,
         counters: counters,
-        total: queue.length
+        totalCS: queueCS.length,
+        totalTeller: queueTeller.length
     });
     
     res.json({ success: true, queueItem });
@@ -58,76 +89,102 @@ app.post('/api/add-queue', (req, res) => {
 
 app.post('/api/next-queue', (req, res) => {
     const { counter } = req.body;
-    const counterId = counter || 1;
+    const counterInfo = counters[counter];
+    
+    if (!counterInfo) {
+        return res.json({ success: false, message: 'Counter tidak valid' });
+    }
+    
+    const queue = counterInfo.type === 'cs' ? queueCS : queueTeller;
     
     if (queue.length > 0) {
         const nextItem = queue.shift();
-        counters[counterId].current = nextItem.number;
+        counters[counter].current = nextItem.number;
         
         io.emit('queueUpdated', {
-            queue: queue,
+            queueCS: queueCS,
+            queueTeller: queueTeller,
             counters: counters,
-            total: queue.length,
-            called: { ...nextItem, counter: counterId }
+            totalCS: queueCS.length,
+            totalTeller: queueTeller.length,
+            called: { ...nextItem, counter: counter, counterName: counterInfo.name }
         });
         
-        res.json({ success: true, called: nextItem, counter: counterId });
+        res.json({ success: true, called: nextItem, counter: counter });
     } else {
         res.json({ success: false, message: 'Tidak ada antrian' });
     }
 });
 
 app.post('/api/recall-number', (req, res) => {
-    console.log('Recall request received:', req.body);
     const { number, counter } = req.body;
-    const counterId = counter || 1;
+    const counterInfo = counters[counter];
     
-    console.log('Processing recall - number:', number, 'counter:', counterId);
+    if (!counterInfo) {
+        return res.json({ success: false, message: 'Counter tidak valid' });
+    }
     
     if (number && String(number).trim() !== '') {
-        const formattedNumber = String(number).padStart(3, '0');
-        counters[counterId].current = formattedNumber;
-        
-        console.log('Recall successful - formatted number:', formattedNumber);
+        counters[counter].current = number;
         
         io.emit('queueUpdated', {
-            queue: queue,
+            queueCS: queueCS,
+            queueTeller: queueTeller,
             counters: counters,
-            total: queue.length,
-            called: { number: formattedNumber, counter: counterId, recall: true }
+            totalCS: queueCS.length,
+            totalTeller: queueTeller.length,
+            called: { number: number, counter: counter, counterName: counterInfo.name, recall: true }
         });
         
-        res.json({ success: true, recalled: formattedNumber, counter: counterId });
+        res.json({ success: true, recalled: number, counter: counter });
     } else {
-        console.log('Recall failed - invalid number');
         res.json({ success: false, message: 'Nomor tidak valid' });
     }
 });
 
 app.post('/api/reset-queue', (req, res) => {
-    console.log('Reset queue request received');
-    queue = [];
+    queueCS = [];
+    queueTeller = [];
     counters = {
-        1: { current: 0, name: 'Loket 1' },
-        2: { current: 0, name: 'Loket 2' }
+        cs1: { current: '000', name: 'CS 1', type: 'cs' },
+        cs2: { current: '000', name: 'CS 2', type: 'cs' },
+        t1: { current: '000', name: 'Teller 1', type: 'teller' },
+        t2: { current: '000', name: 'Teller 2', type: 'teller' }
     };
-    nextNumber = 1;
+    nextNumberCS = 1;
+    nextNumberTeller = 1;
     
     io.emit('queueUpdated', {
-        queue: queue,
+        queueCS: queueCS,
+        queueTeller: queueTeller,
         counters: counters,
-        total: queue.length
+        totalCS: queueCS.length,
+        totalTeller: queueTeller.length
     });
     
-    console.log('Reset successful');
     res.json({ success: true, message: 'Antrian berhasil direset' });
+});
+
+app.get('/api/queue', (req, res) => {
+    const now = new Date();
+    const formatted = now.toISOString().slice(0, 16).replace('T', ' ');
+    
+    res.json({
+        cs1: counters.cs1.current,
+        cs2: counters.cs2.current,
+        t1: counters.t1.current,
+        t2: counters.t2.current,
+        updated: formatted
+    });
 });
 
 app.get('/api/queue-status', (req, res) => {
     res.json({
-        queue: queue,
+        queueCS: queueCS,
+        queueTeller: queueTeller,
         counters: counters,
-        total: queue.length
+        totalCS: queueCS.length,
+        totalTeller: queueTeller.length
     });
 });
 
@@ -135,11 +192,12 @@ app.get('/api/queue-status', (req, res) => {
 io.on('connection', (socket) => {
     console.log('Client connected:', socket.id);
     
-    // Kirim status antrian saat client connect
     socket.emit('queueUpdated', {
-        queue: queue,
+        queueCS: queueCS,
+        queueTeller: queueTeller,
         counters: counters,
-        total: queue.length
+        totalCS: queueCS.length,
+        totalTeller: queueTeller.length
     });
     
     socket.on('disconnect', () => {

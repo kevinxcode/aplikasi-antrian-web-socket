@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Antrian</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: Arial, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container { 
+            background: white; 
+            padding: 50px; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        h1 { color: #333; margin-bottom: 40px; font-size: 36px; }
+        .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        .menu-item { 
+            padding: 40px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 15px;
+            font-size: 20px;
+            font-weight: bold;
+            transition: transform 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .menu-item:hover { transform: scale(1.05); }
+        .menu-item:active { transform: scale(0.95); }
+        .menu-item.green { background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); }
+        .menu-item.blue { background: linear-gradient(135deg, #2980b9 0%, #3498db 100%); }
+        .menu-item.orange { background: linear-gradient(135deg, #e67e22 0%, #f39c12 100%); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Sistem Antrian</h1>
+        <div class="menu-grid">
+            <a href="/ambil-nomor" class="menu-item green">
+                📝 Ambil Nomor
+            </a>
+            <a href="/admin" class="menu-item blue">
+                🎯 Admin Panel
+            </a>
+            <a href="/display" class="menu-item orange" target="_blank">
+                📺 Display
+            </a>
+            <a href="/index.html" class="menu-item">
+                ⚙️ Full Admin
+            </a>
+        </div>
+    </div>
+</body>
+</html>
