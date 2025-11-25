@@ -39,10 +39,6 @@ socket.on('queueUpdated', (data) => {
     document.getElementById('t1').textContent = data.counters.t1.current;
     document.getElementById('t2').textContent = data.counters.t2.current;
     
-    // Update timestamp
-    const now = new Date().toISOString().slice(0, 16).replace('T', ' ');
-    document.getElementById('updated').textContent = `Last updated: ${now}`;
-    
     // Mainkan suara jika ada panggilan baru
     if (data.called) {
         playSound(data.called.number, data.called.counterName || data.called.counter);
@@ -59,7 +55,6 @@ async function fetchQueueData() {
         document.getElementById('cs2').textContent = data.cs2;
         document.getElementById('t1').textContent = data.t1;
         document.getElementById('t2').textContent = data.t2;
-        document.getElementById('updated').textContent = `Last updated: ${data.updated}`;
         
     } catch (error) {
         console.error('Error fetching queue data:', error);
@@ -88,3 +83,15 @@ function nextSlide() {
 
 // Ganti slide setiap 5 detik
 setInterval(nextSlide, 5000);
+
+// Update waktu real-time
+function updateClock() {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    document.getElementById('clock').textContent = `${hours}:${minutes}:${seconds}`;
+}
+
+updateClock();
+setInterval(updateClock, 1000);
