@@ -5,28 +5,22 @@
 }
 
 body {
-    font-family: Arial, sans-serif;
-    background: #f0f0f0;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
+    font-family: 'Arial', sans-serif;
+    background: #f5f5f5;
+    overflow: hidden;
 }
 
 .container {
     display: flex;
-    height: calc(100vh - 100px);
-    gap: 20px;
-    padding: 20px;
+    height: calc(100vh - 70px);
 }
 
+/* Left Section - Slideshow */
 .left-section {
     flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: white;
-    border-radius: 10px;
-    padding: 20px;
+    background: #fff;
+    position: relative;
+    overflow: hidden;
 }
 
 .slideshow-container {
@@ -41,8 +35,6 @@ body {
     height: 100%;
     object-fit: cover;
     position: absolute;
-    top: 0;
-    left: 0;
     opacity: 0;
     transition: opacity 1s ease-in-out;
 }
@@ -51,133 +43,177 @@ body {
     opacity: 1;
 }
 
+/* Right Section - Queue Display */
 .right-section {
-    flex: 1;
+    width: 50%;
+    background: #fff;
+    padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    justify-content: center;
+    gap: 15px;
 }
 
 .header-logo {
-    text-align: center;
-    padding: 20px;
-    background: white;
-    border-radius: 15px;
+    text-align: right;
+    margin-bottom: 10px;
 }
 
 .header-logo img {
-    max-height: 120px;
-    object-fit: contain;
+    height: 80px;
 }
 
+/* Queue Card */
 .queue-card {
-    background: white;
+    background: #fff;
     border-radius: 15px;
-    padding: 40px 50px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    padding: 20px 30px;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border: 2px solid #e0e0e0;
+    min-height: 110px;
     position: relative;
-    min-height: 150px;
+    overflow: hidden;
 }
 
 .service-label {
     font-size: 32px;
-    color: #333;
-    font-weight: 500;
-    min-width: 250px;
+    color: #0066ff;
+    font-weight: 600;
+    flex: 0 0 250px;
 }
 
 .queue-center {
     flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    text-align: center;
 }
 
 .queue-label {
-    font-size: 24px;
+    font-size: 22px;
     color: #666;
-    margin-bottom: 10px;
+    margin-bottom: 0;
+    font-weight: 500;
 }
 
 .queue-number {
-    font-size: 96px;
+    font-size: 64px;
     font-weight: bold;
-    color: #e74c3c;
+    color: #ff0000;
+    letter-spacing: 2px;
 }
 
 .counter-badge {
-    display: flex;
-    align-items: center;
-}
-
-.counter-circle {
-    width: 80px;
-    height: 80px;
-    background: #3498db;
-    border-radius: 50%;
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 120px;
     display: flex;
     align-items: center;
     justify-content: center;
+    background: #0066ff;
+    border-radius: 0 13px 13px 0;
+}
+
+.counter-circle {
     color: white;
-    font-size: 36px;
+    font-size: 64px;
     font-weight: bold;
 }
 
+/* Footer */
 .footer {
-    height: 100px;
-    background: #2c3e50;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 40px;
-    font-size: 28px;
-}
-
-.footer-left {
-    display: flex;
-    align-items: center;
-    gap: 40px;
-    flex: 1;
-}
-
-.footer-right {
-    display: flex;
-    align-items: center;
-}
-
-.footer-logo {
     height: 70px;
-    object-fit: contain;
+    display: flex;
+    align-items: center;
+    padding: 0;
+    color: white;
+    position: relative;
+    overflow: visible;
+}
+
+.datetime-box {
+    position: absolute;
+    left: 30px;
+    top: -35px;
+    background: #ff0000;
+    padding: 12px 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 280px;
+}
+
+.date {
+    font-size: 16px;
+    font-weight: 500;
+    text-align: center;
 }
 
 .clock {
-    font-size: 40px;
+    font-size: 36px;
     font-weight: bold;
-    background: rgba(255,255,255,0.1);
-    padding: 10px 30px;
-    border-radius: 10px;
+    text-align: center;
 }
 
 .marquee {
     flex: 1;
     overflow: hidden;
     white-space: nowrap;
+    background: #0066ff;
+    height: 100%;
+    display: flex;
+    align-items: center;
 }
 
 .marquee span {
     display: inline-block;
     padding-left: 100%;
     animation: marquee 20s linear infinite;
+    font-size: 22px;
+    font-weight: 500;
 }
 
 @keyframes marquee {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-100%); }
+    0% {
+        transform: translate(0, 0);
+    }
+    100% {
+        transform: translate(-100%, 0);
+    }
+}
+
+.footer-right {
+    display: flex;
+    align-items: center;
+    background: #0066ff;
+    height: 100%;
+    padding: 0 30px;
+}
+
+.footer-logo {
+    height: 45px;
+    filter: brightness(0) invert(1);
+}
+
+@media (max-width: 1200px) {
+    .queue-number {
+        font-size: 72px;
+    }
+    
+    .service-label {
+        font-size: 28px;
+        flex: 0 0 200px;
+    }
+    
+    .queue-label {
+        font-size: 24px;
+    }
 }
 
 @media (max-width: 1024px) {
@@ -186,20 +222,129 @@ body {
     }
     
     .left-section {
-        height: 30%;
+        height: 40%;
     }
     
     .right-section {
-        height: 70%;
+        width: 100%;
+        height: 60%;
+        padding: 15px;
+    }
+    
+    .header-logo img {
+        height: 60px;
+    }
+    
+    .queue-card {
+        padding: 20px 25px;
+        min-height: 110px;
+    }
+    
+    .queue-number {
+        font-size: 64px;
+    }
+    
+    .service-label {
+        font-size: 24px;
+        flex: 0 0 180px;
+    }
+    
+    .queue-label {
+        font-size: 22px;
+    }
+    
+    .counter-badge {
+        width: 120px;
+    }
+    
+    .counter-circle {
+        font-size: 56px;
+    }
+    
+    .datetime-box {
+        left: 20px;
+        top: -40px;
+        padding: 15px 30px;
+        min-width: 250px;
+    }
+    
+    .clock {
+        font-size: 32px;
+    }
+    
+    .date {
+        font-size: 14px;
     }
 }
 
 @media (max-width: 768px) {
+    .container {
+        height: calc(100vh - 80px);
+    }
+    
+    .footer {
+        height: 80px;
+    }
+    
+    .left-section {
+        height: 35%;
+    }
+    
     .right-section {
-        grid-template-columns: 1fr;
+        height: 65%;
+        gap: 10px;
+    }
+    
+    .header-logo img {
+        height: 50px;
+    }
+    
+    .queue-card {
+        padding: 15px 20px;
+        min-height: 90px;
+    }
+    
+    .service-label {
+        font-size: 18px;
+        flex: 0 0 140px;
+    }
+    
+    .queue-label {
+        font-size: 16px;
     }
     
     .queue-number {
-        font-size: 56px;
+        font-size: 48px;
+    }
+    
+    .counter-badge {
+        width: 100px;
+    }
+    
+    .counter-circle {
+        font-size: 42px;
+    }
+    
+    .datetime-box {
+        left: 15px;
+        top: -35px;
+        padding: 12px 20px;
+        min-width: 200px;
+    }
+    
+    .clock {
+        font-size: 28px;
+    }
+    
+    .date {
+        font-size: 12px;
+    }
+    
+    .marquee span {
+        font-size: 20px;
+    }
+    
+    .footer-logo {
+        height: 40px;
     }
 }
