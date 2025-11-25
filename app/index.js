@@ -56,7 +56,7 @@ let nextNumberTeller = 1;
 
 // Routes
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'menu.html'));
+    res.redirect('/login');
 });
 
 app.get('/login', (req, res) => {
@@ -73,6 +73,10 @@ app.get('/admin', requireAuth, (req, res) => {
 
 app.get('/display', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'display.html'));
+});
+
+app.get('/settings', requireAuth, requireRole('admin'), (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'settings.html'));
 });
 
 // API Routes
@@ -96,7 +100,8 @@ app.post('/api/login', async (req, res) => {
         req.session.user = {
             id: user.id,
             username: user.username,
-            role: user.role
+            role: user.role,
+            full_name: user.full_name
         };
         
         res.json({ success: true, redirect: '/admin' });
@@ -113,6 +118,97 @@ app.post('/api/logout', (req, res) => {
 
 app.get('/api/user', requireAuth, (req, res) => {
     res.json({ user: req.session.user });
+});
+
+app.post('/api/update-profile', requireAuth, async (req, res) => {
+    const { full_name } = req.body;
+    const userId = req.session.user.id;
+    
+    try {
+        await pool.query(
+            'UPDATE users SET full_name = $1 WHERE id = $2',
+            [full_name, userId]
+        );
+        
+        req.session.user.full_name = full_name;
+        res.json({ success: true, message: 'Profil berhasil diupdate' });
+    } catch (error) {
+        console.error('Update profile error:', error);
+        res.json({ success: false, message: 'Gagal update profil' });
+    }
+});
+
+app.get('/api/display-settings', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM display_settings ORDER BY id DESC LIMIT 1');
+        if (result.rows.length > 0) {
+            res.json({ success: true, settings: result.rows[0] });
+        } else {
+            res.json({ success: true, settings: { marquee_text: 'Selamat Datang di Sistem Antrian', slide_images: [] } });
+        }
+    } catch (error) {
+        console.error('Get display settings error:', error);
+        res.json({ success: false, message: 'Gagal mengambil pengaturan' });
+    }
+});
+
+app.post('/api/display-settings', requireAuth, requireRole('admin'), async (req, res) => {
+    const { marquee_text, slide_images } = req.body;
+    const userId = req.session.user.id;
+    
+    try {
+        await pool.query(
+            'UPDATE display_settings SET marquee_text = $1, slide_images = $2, updated_at = NOW(), updated_by = $3',
+            [marquee_text, slide_images, userId]
+        );
+        
+        io.emit('displaySettingsUpdated', { marquee_text, slide_images });
+        res.json({ success: true, message: 'Pengaturan berhasil diupdate' });
+    } catch (error) {
+        console.error('Update display settings error:', error);
+        res.json({ success: false, message: 'Gagal update pengaturan' });
+    }
+});
+
+app.post('/api/upload-image', requireAuth, requireRole('admin'), async (req, res) => {
+    const { image_data, filename } = req.body;
+    
+    try {
+        const result = await pool.query('SELECT slide_images FROM display_settings ORDER BY id DESC LIMIT 1');
+        let images = result.rows[0]?.slide_images || [];
+        images.push(image_data);
+        
+        await pool.query(
+            'UPDATE display_settings SET slide_images = $1, updated_at = NOW(), updated_by = $2',
+            [images, req.session.user.id]
+        );
+        
+        res.json({ success: true, message: 'Gambar berhasil diupload' });
+    } catch (error) {
+        console.error('Upload image error:', error);
+        res.json({ success: false, message: 'Gagal upload gambar' });
+    }
+});
+
+app.post('/api/delete-image', requireAuth, requireRole('admin'), async (req, res) => {
+    const { index } = req.body;
+    
+    try {
+        const result = await pool.query('SELECT slide_images FROM display_settings ORDER BY id DESC LIMIT 1');
+        let images = result.rows[0]?.slide_images || [];
+        images.splice(index, 1);
+        
+        await pool.query(
+            'UPDATE display_settings SET slide_images = $1, updated_at = NOW(), updated_by = $2',
+            [images, req.session.user.id]
+        );
+        
+        io.emit('displaySettingsUpdated', { slide_images: images });
+        res.json({ success: true, message: 'Gambar berhasil dihapus' });
+    } catch (error) {
+        console.error('Delete image error:', error);
+        res.json({ success: false, message: 'Gagal hapus gambar' });
+    }
 });
 
 app.post('/api/add-queue', async (req, res) => {
@@ -191,8 +287,8 @@ app.post('/api/next-queue', requireAuth, async (req, res) => {
         // Update database
         try {
             await pool.query(
-                'UPDATE queue_transactions SET status = $1, counter = $2, called_by = $3, called_at = NOW() WHERE queue_number = $4',
-                ['called', counter, user.id, nextItem.number]
+                'UPDATE queue_transactions SET status = $1, counter = $2, called_by = $3, called_at = NOW(), called_by_name = $4 WHERE queue_number = $5',
+                ['called', counter, user.id, user.full_name || user.username, nextItem.number]
             );
         } catch (error) {
             console.error('Database error:', error);
@@ -228,8 +324,8 @@ app.post('/api/recall-number', requireAuth, async (req, res) => {
         // Update database
         try {
             await pool.query(
-                'UPDATE queue_transactions SET called_by = $1, called_at = NOW() WHERE queue_number = $2',
-                [user.id, number]
+                'UPDATE queue_transactions SET called_by = $1, called_at = NOW(), called_by_name = $2 WHERE queue_number = $3',
+                [user.id, user.full_name || user.username, number]
             );
         } catch (error) {
             console.error('Database error:', error);
@@ -300,7 +396,7 @@ app.get('/api/queue-status', (req, res) => {
 app.get('/api/transactions', requireAuth, requireRole('admin'), async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT qt.*, u.username as called_by_username 
+            SELECT qt.*, u.username as called_by_username, u.full_name as called_by_fullname 
             FROM queue_transactions qt 
             LEFT JOIN users u ON qt.called_by = u.id 
             ORDER BY qt.created_at DESC 
@@ -334,3 +430,5 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
+
+module.exports = { app, server, io };

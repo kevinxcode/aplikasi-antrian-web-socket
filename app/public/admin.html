@@ -108,7 +108,8 @@
         
         <div class="links">
             <a href="/ambil-nomor.html" target="_blank">Buka Ambil Nomor</a> |
-            <a href="/display" target="_blank">Buka Display</a>
+            <a href="/display" target="_blank">Buka Display</a> |
+            <a href="/settings" id="settingsLink" style="display: none;">Pengaturan Display</a>
         </div>
     </div>
 
@@ -124,6 +125,10 @@
                     userRole = data.user.role;
                     document.getElementById('userInfo').textContent = `${data.user.username} (${data.user.role})`;
                     adjustUIByRole(data.user.role);
+                    checkFullName(data.user);
+                    if (data.user.role === 'admin') {
+                        document.getElementById('settingsLink').style.display = 'inline';
+                    }
                 } else {
                     window.location.href = '/login.html';
                 }
@@ -131,6 +136,24 @@
             .catch(() => {
                 window.location.href = '/login.html';
             });
+        
+        function checkFullName(user) {
+            if (!user.full_name) {
+                const fullName = prompt('Silakan masukkan nama lengkap Anda:');
+                if (fullName && fullName.trim()) {
+                    fetch('/api/update-profile', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ full_name: fullName.trim() })
+                    }).then(res => res.json())
+                      .then(result => {
+                          if (result.success) {
+                              alert('Nama lengkap berhasil disimpan');
+                          }
+                      });
+                }
+            }
+        }
         
         function adjustUIByRole(role) {
             if (role === 'cs') {

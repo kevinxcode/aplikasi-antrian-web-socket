@@ -19,6 +19,7 @@ async function initDB() {
                 username VARCHAR(50) UNIQUE NOT NULL,
                 password VARCHAR(255) NOT NULL,
                 role VARCHAR(20) NOT NULL,
+                full_name VARCHAR(100),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
@@ -33,10 +34,29 @@ async function initDB() {
                 counter VARCHAR(10),
                 status VARCHAR(20) DEFAULT 'waiting',
                 called_by INTEGER REFERENCES users(id),
+                called_by_name VARCHAR(100),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 called_at TIMESTAMP,
                 completed_at TIMESTAMP
             )
+        `);
+
+        // Display settings table
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS display_settings (
+                id SERIAL PRIMARY KEY,
+                marquee_text TEXT DEFAULT 'Selamat Datang di Sistem Antrian',
+                slide_images TEXT[] DEFAULT '{}',
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_by INTEGER REFERENCES users(id)
+            )
+        `);
+
+        // Insert default display settings
+        await client.query(`
+            INSERT INTO display_settings (marquee_text, slide_images)
+            SELECT 'Selamat Datang di Sistem Antrian', ARRAY[]::TEXT[]
+            WHERE NOT EXISTS (SELECT 1 FROM display_settings LIMIT 1)
         `);
 
         // Insert default users if not exists

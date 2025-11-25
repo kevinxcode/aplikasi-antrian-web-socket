@@ -9,10 +9,15 @@ services:
       - POSTGRES_PASSWORD=antrian123
       - POSTGRES_DB=antrian_db
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./postgres-data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U antrian -d antrian_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   antrian-app:
     build: ./app
@@ -30,7 +35,7 @@ services:
       - DB_NAME=antrian_db
       - SESSION_SECRET=antrian-secret-key-2024
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
-volumes:
-  postgres_data:
+

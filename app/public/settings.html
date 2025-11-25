@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pengaturan Display</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #333; margin-bottom: 30px; }
+        .section { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        h3 { margin-bottom: 15px; color: #333; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; }
+        textarea { min-height: 100px; resize: vertical; }
+        button { padding: 12px 24px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; color: white; margin-right: 10px; }
+        button:hover { opacity: 0.9; }
+        .btn-primary { background: #007bff; }
+        .btn-success { background: #28a745; }
+        .btn-danger { background: #dc3545; }
+        .btn-secondary { background: #6c757d; }
+        .image-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
+        .image-item { position: relative; border: 2px solid #ddd; border-radius: 8px; overflow: hidden; }
+        .image-item img { width: 100%; height: 150px; object-fit: cover; }
+        .image-item button { position: absolute; top: 5px; right: 5px; padding: 5px 10px; font-size: 12px; }
+        .upload-area { border: 2px dashed #ddd; padding: 30px; text-align: center; border-radius: 8px; cursor: pointer; }
+        .upload-area:hover { background: #f8f9fa; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h1 style="margin: 0;">Pengaturan Display</h1>
+            <div>
+                <a href="/admin"><button class="btn-secondary">Kembali ke Admin</button></a>
+                <button class="btn-danger" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Teks Marquee</h3>
+            <div class="form-group">
+                <label for="marqueeText">Teks Berjalan:</label>
+                <textarea id="marqueeText" placeholder="Masukkan teks yang akan berjalan di display..."></textarea>
+            </div>
+            <button class="btn-success" onclick="saveMarquee()">Simpan Teks Marquee</button>
+        </div>
+
+        <div class="section">
+            <h3>Slide Gambar</h3>
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <p>📁 Klik untuk upload gambar</p>
+                <small>Format: JPG, PNG (Max 2MB)</small>
+            </div>
+            <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="uploadImage(event)">
+            
+            <div class="image-grid" id="imageGrid">
+                <p>Belum ada gambar</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentSettings = {};
+
+        // Check authentication
+        fetch('/api/user')
+            .then(res => res.json())
+            .then(data => {
+                if (!data.user || data.user.role !== 'admin') {
+                    alert('Hanya admin yang dapat mengakses halaman ini');
+                    window.location.href = '/admin';
+                }
+            })
+            .catch(() => {
+                window.location.href = '/login';
+            });
+
+        // Load settings
+        loadSettings();
+
+        async function loadSettings() {
+            try {
+                const response = await fetch('/api/display-settings');
+                const result = await response.json();
+                
+                if (result.success) {
+                    currentSettings = result.settings;
+                    document.getElementById('marqueeText').value = currentSettings.marquee_text || '';
+                    displayImages(currentSettings.slide_images || []);
+                }
+            } catch (error) {
+                console.error('Error loading settings:', error);
+            }
+        }
+
+        function displayImages(images) {
+            const grid = document.getElementById('imageGrid');
+            
+            if (images.length === 0) {
+                grid.innerHTML = '<p>Belum ada gambar</p>';
+                return;
+            }
+            
+            grid.innerHTML = images.map((img, index) => `
+                <div class="image-item">
+                    <img src="${img}" alt="Slide ${index + 1}">
+                    <button class="btn-danger" onclick="deleteImage(${index})">Hapus</button>
+                </div>
+            `).join('');
+        }
+
+        async function saveMarquee() {
+            const marqueeText = document.getElementById('marqueeText').value.trim();
+            
+            if (!marqueeText) {
+                alert('Teks marquee tidak boleh kosong');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/display-settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        marquee_text: marqueeText,
+                        slide_images: currentSettings.slide_images || []
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Teks marquee berhasil disimpan');
+                    loadSettings();
+                } else {
+                    alert(result.message || 'Gagal menyimpan');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function uploadImage(event) {
+            const file = event.target.files[0];
+            
+            if (!file) return;
+            
+            if (file.size > 2 * 1024 * 1024) {
+                alert('Ukuran file maksimal 2MB');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const response = await fetch('/api/upload-image', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            image_data: e.target.result,
+                            filename: file.name
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        alert('Gambar berhasil diupload');
+                        loadSettings();
+                    } else {
+                        alert(result.message || 'Gagal upload gambar');
+                    }
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                }
+            };
+            
+            reader.readAsDataURL(file);
+            event.target.value = '';
+        }
+
+        async function deleteImage(index) {
+            if (!confirm('Yakin ingin menghapus gambar ini?')) return;
+            
+            try {
+                const response = await fetch('/api/delete-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ index })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Gambar berhasil dihapus');
+                    loadSettings();
+                } else {
+                    alert(result.message || 'Gagal hapus gambar');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function logout() {
+            await fetch('/api/logout', { method: 'POST' });
+            window.location.href = '/login';
+        }
+    </script>
+</body>
+</html>
