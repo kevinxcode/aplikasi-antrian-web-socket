@@ -131,8 +131,45 @@
     <script>
         const socket = io();
         
+        // Fungsi untuk memutar suara
+        function playSound(number, counter) {
+            const utterance = new SpeechSynthesisUtterance();
+            utterance.text = `Nomor antrian ${number}, silakan menuju loket ${counter}`;
+            utterance.lang = 'id-ID';
+            utterance.rate = 0.9;
+            utterance.pitch = 1;
+            utterance.volume = 1;
+            
+            // Cari voice Indonesia
+            const voices = speechSynthesis.getVoices();
+            const indonesianVoice = voices.find(voice => 
+                voice.lang === 'id-ID' || 
+                voice.lang === 'id_ID' || 
+                voice.name.includes('Indonesia')
+            );
+            
+            if (indonesianVoice) {
+                utterance.voice = indonesianVoice;
+            }
+            
+            speechSynthesis.speak(utterance);
+        }
+        
+        // Load voices saat halaman dimuat
+        speechSynthesis.getVoices();
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = () => {
+                speechSynthesis.getVoices();
+            };
+        }
+        
         socket.on('queueUpdated', (data) => {
             updateDisplay(data);
+            
+            // Mainkan suara jika ada panggilan baru
+            if (data.called) {
+                playSound(data.called.number, data.called.counter);
+            }
         });
         
         function updateDisplay(data) {
