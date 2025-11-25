@@ -33,7 +33,13 @@
 </head>
 <body>
     <div class="container">
-        <h1>Admin - Pemanggilan Antrian</h1>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h1 style="margin: 0;">Admin - Pemanggilan Antrian</h1>
+            <div>
+                <span id="userInfo" style="margin-right: 15px; font-weight: bold;"></span>
+                <button class="btn-danger" onclick="logout()" style="padding: 8px 15px;">Logout</button>
+            </div>
+        </div>
         
         <div class="status">
             <div class="status-item">
@@ -108,6 +114,39 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
+        let userRole = '';
+        
+        // Check authentication
+        fetch('/api/user')
+            .then(res => res.json())
+            .then(data => {
+                if (data.user) {
+                    userRole = data.user.role;
+                    document.getElementById('userInfo').textContent = `${data.user.username} (${data.user.role})`;
+                    adjustUIByRole(data.user.role);
+                } else {
+                    window.location.href = '/login.html';
+                }
+            })
+            .catch(() => {
+                window.location.href = '/login.html';
+            });
+        
+        function adjustUIByRole(role) {
+            if (role === 'cs') {
+                // Hide teller buttons
+                document.querySelectorAll('.btn-teller').forEach(btn => btn.style.display = 'none');
+            } else if (role === 'teller') {
+                // Hide CS buttons
+                document.querySelectorAll('.btn-cs').forEach(btn => btn.style.display = 'none');
+            }
+        }
+        
+        async function logout() {
+            await fetch('/api/logout', { method: 'POST' });
+            window.location.href = '/login.html';
+        }
+        
         const socket = io();
         
         socket.on('queueUpdated', (data) => {

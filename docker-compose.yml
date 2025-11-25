@@ -1,6 +1,19 @@
 version: '3.8'
 
 services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: antrian-postgres
+    environment:
+      - POSTGRES_USER=antrian
+      - POSTGRES_PASSWORD=antrian123
+      - POSTGRES_DB=antrian_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
   antrian-app:
     build: ./app
     container_name: antrian-app
@@ -10,3 +23,14 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=antrian
+      - DB_PASSWORD=antrian123
+      - DB_NAME=antrian_db
+      - SESSION_SECRET=antrian-secret-key-2024
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:

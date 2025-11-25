@@ -1,48 +1,23 @@
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
-const session = require('express-session');
-const bcrypt = require('bcrypt');
 const path = require('path');
-const { pool, initDB } = require('./db');
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-// Initialize database
-initDB();
-
 // Middleware
 app.use(express.static('public'));
 app.use(express.json());
-app.use(session({
-    secret: process.env.SESSION_SECRET || 'antrian-secret-key',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { maxAge: 24 * 60 * 60 * 1000 }
-}));
 
-// Auth middleware
-function requireAuth(req, res, next) {
-    if (req.session.user) {
-        next();
-    } else {
-        res.redirect('/login.html');
-    }
-}
+// Logging middleware
+app.use((req, res, next) => {
+    console.log(`${req.method} ${req.path}`);
+    next();
+});
 
-function requireRole(...roles) {
-    return (req, res, next) => {
-        if (req.session.user && roles.includes(req.session.user.role)) {
-            next();
-        } else {
-            res.status(403).json({ success: false, message: 'Akses ditolak' });
-        }
-    };
-}
-
-// Data antrian (in-memory untuk real-time)
+// Data antrian
 let queueCS = [];
 let queueTeller = [];
 let counters = {
@@ -59,15 +34,11 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'menu.html'));
 });
 
-app.get('/login', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'login.html'));
-});
-
 app.get('/ambil-nomor', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'ambil-nomor.html'));
 });
 
-app.get('/admin', requireAuth, (req, res) => {
+app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
@@ -76,46 +47,7 @@ app.get('/display', (req, res) => {
 });
 
 // API Routes
-app.post('/api/login', async (req, res) => {
-    const { username, password } = req.body;
-    
-    try {
-        const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
-        
-        if (result.rows.length === 0) {
-            return res.json({ success: false, message: 'Username tidak ditemukan' });
-        }
-        
-        const user = result.rows[0];
-        const match = await bcrypt.compare(password, user.password);
-        
-        if (!match) {
-            return res.json({ success: false, message: 'Password salah' });
-        }
-        
-        req.session.user = {
-            id: user.id,
-            username: user.username,
-            role: user.role
-        };
-        
-        res.json({ success: true, redirect: '/admin' });
-    } catch (error) {
-        console.error('Login error:', error);
-        res.json({ success: false, message: 'Login gagal' });
-    }
-});
-
-app.post('/api/logout', (req, res) => {
-    req.session.destroy();
-    res.json({ success: true });
-});
-
-app.get('/api/user', requireAuth, (req, res) => {
-    res.json({ user: req.session.user });
-});
-
-app.post('/api/add-queue', async (req, res) => {
+app.post('/api/add-queue', (req, res) => {
     const { type, name } = req.body;
     
     let queueItem, queue, prefix;
@@ -144,16 +76,6 @@ app.post('/api/add-queue', async (req, res) => {
         queue = queueCS;
     }
     
-    // Save to database
-    try {
-        await pool.query(
-            'INSERT INTO queue_transactions (queue_number, queue_type, customer_name, status) VALUES ($1, $2, $3, $4)',
-            [queueItem.number, queueItem.type, queueItem.name, 'waiting']
-        );
-    } catch (error) {
-        console.error('Database error:', error);
-    }
-    
     io.emit('queueUpdated', {
         queueCS: queueCS,
         queueTeller: queueTeller,
@@ -165,21 +87,12 @@ app.post('/api/add-queue', async (req, res) => {
     res.json({ success: true, queueItem });
 });
 
-app.post('/api/next-queue', requireAuth, async (req, res) => {
+app.post('/api/next-queue', (req, res) => {
     const { counter } = req.body;
     const counterInfo = counters[counter];
-    const user = req.session.user;
     
     if (!counterInfo) {
         return res.json({ success: false, message: 'Counter tidak valid' });
-    }
-    
-    // Check role permission
-    if (user.role === 'cs' && counterInfo.type !== 'cs') {
-        return res.json({ success: false, message: 'Anda hanya bisa memanggil antrian CS' });
-    }
-    if (user.role === 'teller' && counterInfo.type !== 'teller') {
-        return res.json({ success: false, message: 'Anda hanya bisa memanggil antrian Teller' });
     }
     
     const queue = counterInfo.type === 'cs' ? queueCS : queueTeller;
@@ -187,16 +100,6 @@ app.post('/api/next-queue', requireAuth, async (req, res) => {
     if (queue.length > 0) {
         const nextItem = queue.shift();
         counters[counter].current = nextItem.number;
-        
-        // Update database
-        try {
-            await pool.query(
-                'UPDATE queue_transactions SET status = $1, counter = $2, called_by = $3, called_at = NOW() WHERE queue_number = $4',
-                ['called', counter, user.id, nextItem.number]
-            );
-        } catch (error) {
-            console.error('Database error:', error);
-        }
         
         io.emit('queueUpdated', {
             queueCS: queueCS,
@@ -213,10 +116,9 @@ app.post('/api/next-queue', requireAuth, async (req, res) => {
     }
 });
 
-app.post('/api/recall-number', requireAuth, async (req, res) => {
+app.post('/api/recall-number', (req, res) => {
     const { number, counter } = req.body;
     const counterInfo = counters[counter];
-    const user = req.session.user;
     
     if (!counterInfo) {
         return res.json({ success: false, message: 'Counter tidak valid' });
@@ -224,16 +126,6 @@ app.post('/api/recall-number', requireAuth, async (req, res) => {
     
     if (number && String(number).trim() !== '') {
         counters[counter].current = number;
-        
-        // Update database
-        try {
-            await pool.query(
-                'UPDATE queue_transactions SET called_by = $1, called_at = NOW() WHERE queue_number = $2',
-                [user.id, number]
-            );
-        } catch (error) {
-            console.error('Database error:', error);
-        }
         
         io.emit('queueUpdated', {
             queueCS: queueCS,
@@ -250,7 +142,7 @@ app.post('/api/recall-number', requireAuth, async (req, res) => {
     }
 });
 
-app.post('/api/reset-queue', requireAuth, requireRole('admin'), async (req, res) => {
+app.post('/api/reset-queue', (req, res) => {
     queueCS = [];
     queueTeller = [];
     counters = {
@@ -294,23 +186,6 @@ app.get('/api/queue-status', (req, res) => {
         totalCS: queueCS.length,
         totalTeller: queueTeller.length
     });
-});
-
-// Get transaction history (admin only)
-app.get('/api/transactions', requireAuth, requireRole('admin'), async (req, res) => {
-    try {
-        const result = await pool.query(`
-            SELECT qt.*, u.username as called_by_username 
-            FROM queue_transactions qt 
-            LEFT JOIN users u ON qt.called_by = u.id 
-            ORDER BY qt.created_at DESC 
-            LIMIT 100
-        `);
-        res.json({ success: true, transactions: result.rows });
-    } catch (error) {
-        console.error('Database error:', error);
-        res.json({ success: false, message: 'Gagal mengambil data' });
-    }
 });
 
 // Socket.IO connection
