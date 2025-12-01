@@ -13,7 +13,52 @@ const io = socketIo(server);
 // Initialize database and load last queue numbers
 initDB().then(() => {
     loadLastQueueNumbers();
+    startDailyReset();
 });
+
+// Auto-reset queue every day at 00:00
+function startDailyReset() {
+    const now = new Date();
+    const night = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() + 1,
+        0, 0, 0, 0
+    );
+    const msToMidnight = night.getTime() - now.getTime();
+    
+    setTimeout(() => {
+        resetDailyQueue();
+        setInterval(resetDailyQueue, 24 * 60 * 60 * 1000);
+    }, msToMidnight);
+    
+    console.log(`Daily auto-reset scheduled at 00:00 (in ${Math.round(msToMidnight / 1000 / 60)} minutes)`);
+}
+
+function resetDailyQueue() {
+    console.log('Auto-reset: Starting daily queue reset at 00:00');
+    
+    queueCS = [];
+    queueTeller = [];
+    counters = {
+        cs1: { current: '000', name: 'CS 1', type: 'cs' },
+        cs2: { current: '000', name: 'CS 2', type: 'cs' },
+        t1: { current: '000', name: 'Teller 1', type: 'teller' },
+        t2: { current: '000', name: 'Teller 2', type: 'teller' }
+    };
+    nextNumberCS = 1;
+    nextNumberTeller = 1;
+    
+    io.emit('queueUpdated', {
+        queueCS: queueCS,
+        queueTeller: queueTeller,
+        counters: counters,
+        totalCS: queueCS.length,
+        totalTeller: queueTeller.length
+    });
+    
+    console.log('Auto-reset: Queue reset completed, ready for new day');
+}
 
 // Middleware
 app.use(express.static('public'));
@@ -62,6 +107,34 @@ async function loadLastQueueNumbers() {
     try {
         const today = new Date().toISOString().split('T')[0];
         
+        // Clear memory first
+        queueCS = [];
+        queueTeller = [];
+        
+        // Load waiting queues from database
+        const waitingQueues = await pool.query(
+            "SELECT * FROM queue_transactions WHERE status = 'waiting' AND DATE(created_at) = $1 ORDER BY created_at ASC",
+            [today]
+        );
+        
+        waitingQueues.rows.forEach(row => {
+            const queueItem = {
+                id: row.id,
+                number: row.queue_number,
+                name: row.customer_name,
+                timestamp: row.created_at,
+                type: row.queue_type
+            };
+            
+            if (row.queue_type === 'cs') {
+                queueCS.push(queueItem);
+            } else if (row.queue_type === 'teller') {
+                queueTeller.push(queueItem);
+            }
+        });
+        
+        console.log(`Loaded ${queueCS.length} CS queues and ${queueTeller.length} Teller queues from database`);
+        
         // Get last CS number
         const csResult = await pool.query(
             "SELECT queue_number FROM queue_transactions WHERE queue_type = 'cs' AND DATE(created_at) = $1 ORDER BY created_at DESC LIMIT 1",
@@ -71,6 +144,9 @@ async function loadLastQueueNumbers() {
             const lastNumber = parseInt(csResult.rows[0].queue_number.substring(1));
             nextNumberCS = lastNumber + 1;
             console.log(`Loaded last CS number: A${String(lastNumber).padStart(3, '0')}, next will be: A${String(nextNumberCS).padStart(3, '0')}`);
+        } else {
+            nextNumberCS = 1;
+            console.log('No CS transactions today, starting from A001');
         }
         
         // Get last Teller number
@@ -82,6 +158,9 @@ async function loadLastQueueNumbers() {
             const lastNumber = parseInt(tellerResult.rows[0].queue_number.substring(1));
             nextNumberTeller = lastNumber + 1;
             console.log(`Loaded last Teller number: B${String(lastNumber).padStart(3, '0')}, next will be: B${String(nextNumberTeller).padStart(3, '0')}`);
+        } else {
+            nextNumberTeller = 1;
+            console.log('No Teller transactions today, starting from B001');
         }
         
         // Load current display numbers for each counter
@@ -121,7 +200,7 @@ async function loadLastQueueNumbers() {
             console.log(`Loaded Teller2 display: ${counters.t2.current}`);
         }
         
-        console.log('Queue numbers and counter displays loaded from database');
+        console.log('Queue numbers, counter displays, and waiting queues loaded from database');
     } catch (error) {
         console.error('Error loading queue numbers:', error);
     }
@@ -381,11 +460,6 @@ app.post('/api/upload-image', requireAuth, requireRole('admin'), async (req, res
     const { image_data } = req.body;
     
     try {
-        const count = await pool.query('SELECT COUNT(*) FROM image_slides');
-        if (parseInt(count.rows[0].count) >= 3) {
-            return res.json({ success: false, message: 'Maksimal 3 gambar slide' });
-        }
-        
         const maxOrder = await pool.query('SELECT COALESCE(MAX(display_order), 0) as max_order FROM image_slides');
         const nextOrder = parseInt(maxOrder.rows[0].max_order) + 1;
         
@@ -468,51 +542,79 @@ app.post('/api/activate-premium', requireAuth, requireRole('admin'), async (req,
 app.post('/api/add-queue', async (req, res) => {
     const { type, name } = req.body;
     
-    let queueItem, queue, prefix;
-    
-    if (type === 'teller') {
-        prefix = 'B';
-        queueItem = {
-            id: Date.now(),
-            number: prefix + String(nextNumberTeller++).padStart(3, '0'),
-            name: name || `Teller ${nextNumberTeller - 1}`,
-            timestamp: new Date(),
-            type: 'teller'
-        };
-        queueTeller.push(queueItem);
-        queue = queueTeller;
-    } else {
-        prefix = 'A';
-        queueItem = {
-            id: Date.now(),
-            number: prefix + String(nextNumberCS++).padStart(3, '0'),
-            name: name || `CS ${nextNumberCS - 1}`,
-            timestamp: new Date(),
-            type: 'cs'
-        };
-        queueCS.push(queueItem);
-        queue = queueCS;
-    }
-    
-    // Save to database
     try {
+        const today = new Date().toISOString().split('T')[0];
+        let prefix, queueType, nextNumber;
+        
+        if (type === 'teller') {
+            prefix = 'B';
+            queueType = 'teller';
+            
+            // Get last number from database
+            const result = await pool.query(
+                "SELECT queue_number FROM queue_transactions WHERE queue_type = 'teller' AND DATE(created_at) = $1 ORDER BY created_at DESC LIMIT 1",
+                [today]
+            );
+            
+            if (result.rows.length > 0) {
+                nextNumber = parseInt(result.rows[0].queue_number.substring(1)) + 1;
+            } else {
+                nextNumber = 1;
+            }
+        } else {
+            prefix = 'A';
+            queueType = 'cs';
+            
+            // Get last number from database
+            const result = await pool.query(
+                "SELECT queue_number FROM queue_transactions WHERE queue_type = 'cs' AND DATE(created_at) = $1 ORDER BY created_at DESC LIMIT 1",
+                [today]
+            );
+            
+            if (result.rows.length > 0) {
+                nextNumber = parseInt(result.rows[0].queue_number.substring(1)) + 1;
+            } else {
+                nextNumber = 1;
+            }
+        }
+        
+        const queueNumber = prefix + String(nextNumber).padStart(3, '0');
+        const customerName = name || `${queueType === 'cs' ? 'CS' : 'Teller'} ${nextNumber}`;
+        
+        // Save to database
         await pool.query(
             'INSERT INTO queue_transactions (queue_number, queue_type, customer_name, status) VALUES ($1, $2, $3, $4)',
-            [queueItem.number, queueItem.type, queueItem.name, 'waiting']
+            [queueNumber, queueType, customerName, 'waiting']
         );
+        
+        // Add to memory for real-time
+        const queueItem = {
+            id: Date.now(),
+            number: queueNumber,
+            name: customerName,
+            timestamp: new Date(),
+            type: queueType
+        };
+        
+        if (queueType === 'teller') {
+            queueTeller.push(queueItem);
+        } else {
+            queueCS.push(queueItem);
+        }
+        
+        io.emit('queueUpdated', {
+            queueCS: queueCS,
+            queueTeller: queueTeller,
+            counters: counters,
+            totalCS: queueCS.length,
+            totalTeller: queueTeller.length
+        });
+        
+        res.json({ success: true, queueItem });
     } catch (error) {
-        console.error('Database error:', error);
+        console.error('Add queue error:', error);
+        res.json({ success: false, message: 'Gagal menambah antrian' });
     }
-    
-    io.emit('queueUpdated', {
-        queueCS: queueCS,
-        queueTeller: queueTeller,
-        counters: counters,
-        totalCS: queueCS.length,
-        totalTeller: queueTeller.length
-    });
-    
-    res.json({ success: true, queueItem });
 });
 
 app.post('/api/next-queue', requireAuth, async (req, res) => {
@@ -613,28 +715,7 @@ app.post('/api/recall-number', requireAuth, async (req, res) => {
     }
 });
 
-app.post('/api/reset-queue', requireAuth, requireRole('admin'), async (req, res) => {
-    queueCS = [];
-    queueTeller = [];
-    counters = {
-        cs1: { current: '000', name: 'CS 1', type: 'cs' },
-        cs2: { current: '000', name: 'CS 2', type: 'cs' },
-        t1: { current: '000', name: 'Teller 1', type: 'teller' },
-        t2: { current: '000', name: 'Teller 2', type: 'teller' }
-    };
-    nextNumberCS = 1;
-    nextNumberTeller = 1;
-    
-    io.emit('queueUpdated', {
-        queueCS: queueCS,
-        queueTeller: queueTeller,
-        counters: counters,
-        totalCS: queueCS.length,
-        totalTeller: queueTeller.length
-    });
-    
-    res.json({ success: true, message: 'Antrian berhasil direset' });
-});
+
 
 app.get('/api/queue', (req, res) => {
     const now = new Date();
@@ -657,6 +738,31 @@ app.get('/api/queue-status', (req, res) => {
         totalCS: queueCS.length,
         totalTeller: queueTeller.length
     });
+});
+
+// Reload queue from database (admin only)
+app.post('/api/reload-queue', requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+        await loadLastQueueNumbers();
+        
+        io.emit('queueUpdated', {
+            queueCS: queueCS,
+            queueTeller: queueTeller,
+            counters: counters,
+            totalCS: queueCS.length,
+            totalTeller: queueTeller.length
+        });
+        
+        res.json({ 
+            success: true, 
+            message: 'Data berhasil di-reload dari database',
+            nextCS: `A${String(nextNumberCS).padStart(3, '0')}`,
+            nextTeller: `B${String(nextNumberTeller).padStart(3, '0')}`
+        });
+    } catch (error) {
+        console.error('Reload queue error:', error);
+        res.json({ success: false, message: 'Gagal reload data' });
+    }
 });
 
 // Get transaction history
@@ -788,6 +894,7 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+    console.log(`Current date: ${new Date().toISOString().split('T')[0]}`);
 });
 
 module.exports = { app, server, io };

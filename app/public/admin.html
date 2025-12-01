@@ -355,7 +355,7 @@
                 const result = await response.json();
                 
                 if (result.success && result.transactions.length > 0) {
-                    const csFiltered = result.transactions.filter(t => t.queue_type === 'cs');
+                    const csFiltered = result.transactions.filter(t => t.queue_type === 'cs' && t.status === 'called' && t.called_at);
                     const calledCSList = document.getElementById('calledCSList');
                     if (csFiltered.length === 0) {
                         calledCSList.innerHTML = '<p style="text-align: center; color: #999;">Belum ada yang dipanggil</p>';
@@ -372,7 +372,7 @@
                         `).join('');
                     }
                     
-                    const tellerFiltered = result.transactions.filter(t => t.queue_type === 'teller');
+                    const tellerFiltered = result.transactions.filter(t => t.queue_type === 'teller' && t.status === 'called' && t.called_at);
                     const calledTellerList = document.getElementById('calledTellerList');
                     if (tellerFiltered.length === 0) {
                         calledTellerList.innerHTML = '<p style="text-align: center; color: #999;">Belum ada yang dipanggil</p>';

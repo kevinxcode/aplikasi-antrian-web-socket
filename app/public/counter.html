@@ -183,6 +183,12 @@
             updateDisplay(data);
         });
         
+        // Load initial data
+        fetch('/api/queue-status')
+            .then(res => res.json())
+            .then(data => updateDisplay(data))
+            .catch(err => console.error('Error loading queue status:', err));
+        
         function updateDisplay(data) {
             if (data.counters && data.counters[myCounter]) {
                 document.getElementById('currentNumber').textContent = data.counters[myCounter].current;
@@ -225,7 +231,7 @@
                 const result = await response.json();
                 
                 if (result.success && result.transactions.length > 0) {
-                    const filtered = result.transactions.filter(t => t.counter === myCounter);
+                    const filtered = result.transactions.filter(t => t.counter === myCounter && t.status === 'called' && t.called_at);
                     const calledList = document.getElementById('calledList');
                     
                     if (filtered.length === 0) {
@@ -255,7 +261,7 @@
                 
                 if (result.success && result.transactions.length > 0) {
                     // Filter CS
-                    const csFiltered = result.transactions.filter(t => t.queue_type === 'cs');
+                    const csFiltered = result.transactions.filter(t => t.queue_type === 'cs' && t.status === 'called' && t.called_at);
                     const calledCSList = document.getElementById('calledCSList');
                     
                     if (csFiltered.length === 0) {
@@ -274,7 +280,7 @@
                     }
                     
                     // Filter Teller
-                    const tellerFiltered = result.transactions.filter(t => t.queue_type === 'teller');
+                    const tellerFiltered = result.transactions.filter(t => t.queue_type === 'teller' && t.status === 'called' && t.called_at);
                     const calledTellerList = document.getElementById('calledTellerList');
                     
                     if (tellerFiltered.length === 0) {

@@ -39,7 +39,7 @@ async function ambilNomor(type) {
             
             setTimeout(() => {
                 modal.classList.remove('show');
-            }, 5000);
+            }, 2000);
         }
     } catch (error) {
         alert('Gagal mengambil nomor antrian');
