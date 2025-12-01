@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pengaturan Printer - Admin</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 30px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 28px;
+        }
+
+        .btn-back {
+            padding: 10px 20px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-back:hover {
+            background: #5a6268;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+            font-family: inherit;
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .preview-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+
+        .preview-title {
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .receipt-preview {
+            background: white;
+            padding: 20px;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+
+        .receipt-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .receipt-address {
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+
+        .receipt-divider {
+            border-top: 1px dashed #333;
+            margin: 10px 0;
+        }
+
+        .receipt-header {
+            font-size: 14px;
+            margin: 10px 0;
+        }
+
+        .receipt-number {
+            font-size: 32px;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+
+        .receipt-service {
+            font-size: 14px;
+            margin: 10px 0;
+        }
+
+        .receipt-date {
+            font-size: 11px;
+            margin: 10px 0;
+        }
+
+        .receipt-footer {
+            font-size: 11px;
+            margin-top: 10px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-test {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-test:hover {
+            background: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚙️ Pengaturan Printer Struk</h1>
+            <a href="/admin" class="btn-back">← Kembali</a>
+        </div>
+
+        <div id="alertBox" class="alert"></div>
+
+        <div class="preview-section">
+            <div class="preview-title">Preview Struk:</div>
+            <div class="receipt-preview">
+                <div class="receipt-title" id="previewTitle">BTN Syariah</div>
+                <div class="receipt-address" id="previewAddress">Jl. Sopo Del No 56 Jakarta Selatan</div>
+                <div class="receipt-divider"></div>
+                <div class="receipt-header">Nomor Antrian</div>
+                <div class="receipt-number">A001</div>
+                <div class="receipt-service">CUSTOMER SERVICE</div>
+                <div class="receipt-date">Senin, 1 Desember 2025 15:00</div>
+                <div class="receipt-footer" id="previewFooter"></div>
+                <div class="receipt-divider"></div>
+            </div>
+        </div>
+
+        <form id="printerForm">
+            <div class="form-group">
+                <label for="title">Judul Struk:</label>
+                <input type="text" id="title" name="title" placeholder="BTN Syariah" required>
+                <div class="help-text">Nama perusahaan/instansi yang akan ditampilkan di bagian atas struk</div>
+            </div>
+
+            <div class="form-group">
+                <label for="address">Alamat:</label>
+                <input type="text" id="address" name="address" placeholder="Jl. Sopo Del No 56 Jakarta Selatan" required>
+                <div class="help-text">Alamat lengkap yang akan ditampilkan di bawah judul</div>
+            </div>
+
+            <div class="form-group">
+                <label for="footer_note">Catatan Footer (Opsional):</label>
+                <textarea id="footer_note" name="footer_note" placeholder="Terima kasih atas kunjungan Anda"></textarea>
+                <div class="help-text">Catatan tambahan yang akan ditampilkan di bawah tanggal (kosongkan jika tidak perlu)</div>
+            </div>
+
+            <div class="form-group">
+                <label for="paper_width">Ukuran Kertas Printer:</label>
+                <select id="paper_width" name="paper_width" required>
+                    <option value="58mm">58mm (Thermal Kecil)</option>
+                    <option value="80mm">80mm (Thermal Besar)</option>
+                </select>
+                <div class="help-text">Pilih ukuran kertas sesuai printer thermal yang digunakan</div>
+            </div>
+
+            <div class="button-group">
+                <button type="submit" class="btn btn-primary">💾 Simpan Pengaturan</button>
+                <button type="button" class="btn btn-test" onclick="testPrint()">🖨️ Test Print</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // Load settings
+        async function loadSettings() {
+            try {
+                const response = await fetch('/api/printer-settings');
+                const data = await response.json();
+                
+                if (data.success && data.settings) {
+                    document.getElementById('title').value = data.settings.title || '';
+                    document.getElementById('address').value = data.settings.address || '';
+                    document.getElementById('footer_note').value = data.settings.footer_note || '';
+                    document.getElementById('paper_width').value = data.settings.paper_width || '58mm';
+                    updatePreview();
+                }
+            } catch (error) {
+                console.error('Error loading settings:', error);
+            }
+        }
+
+        // Update preview
+        function updatePreview() {
+            const title = document.getElementById('title').value || 'BTN Syariah';
+            const address = document.getElementById('address').value || 'Jl. Sopo Del No 56 Jakarta Selatan';
+            const footer = document.getElementById('footer_note').value || '';
+            const paperWidth = document.getElementById('paper_width').value || '58mm';
+            
+            document.getElementById('previewTitle').textContent = title;
+            document.getElementById('previewAddress').textContent = address;
+            document.getElementById('previewFooter').textContent = footer;
+            
+            // Update preview width
+            const preview = document.querySelector('.receipt-preview');
+            if (paperWidth === '80mm') {
+                preview.style.maxWidth = '400px';
+            } else {
+                preview.style.maxWidth = '300px';
+            }
+        }
+
+        // Real-time preview update
+        document.getElementById('title').addEventListener('input', updatePreview);
+        document.getElementById('address').addEventListener('input', updatePreview);
+        document.getElementById('footer_note').addEventListener('input', updatePreview);
+        document.getElementById('paper_width').addEventListener('change', updatePreview);
+
+        // Save settings
+        document.getElementById('printerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                title: document.getElementById('title').value,
+                address: document.getElementById('address').value,
+                footer_note: document.getElementById('footer_note').value,
+                paper_width: document.getElementById('paper_width').value
+            };
+            
+            try {
+                const response = await fetch('/api/printer-settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert('success', data.message);
+                    alert('✅ ' + data.message);
+                } else {
+                    showAlert('error', data.message);
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                showAlert('error', 'Gagal menyimpan pengaturan');
+                alert('❌ Gagal menyimpan pengaturan');
+            }
+        });
+
+        // Test print
+        async function testPrint() {
+            try {
+                const response = await fetch('/api/test-print', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert('success', data.message);
+                    alert('✅ ' + data.message);
+                } else {
+                    showAlert('error', data.message);
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                const errorMsg = 'Gagal melakukan test print: ' + error.message;
+                showAlert('error', errorMsg);
+                alert('❌ ' + errorMsg);
+            }
+        }
+
+        // Show alert
+        function showAlert(type, message) {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.className = 'alert alert-' + type;
+            alertBox.textContent = message;
+            alertBox.style.display = 'block';
+            
+            setTimeout(() => {
+                alertBox.style.display = 'none';
+            }, 5000);
+        }
+
+        // Load on page load
+        loadSettings();
+    </script>
+</body>
+</html>

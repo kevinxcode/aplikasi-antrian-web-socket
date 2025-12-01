@@ -6,11 +6,12 @@
     <title>Manajemen User</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
-        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        body { font-family: Arial, sans-serif; background: #f5f5f5; height: 100vh; overflow: hidden; display: flex; flex-direction: column; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); flex: 1; display: flex; flex-direction: column; overflow: hidden; width: 100%; }
         h1 { text-align: center; color: #333; margin-bottom: 30px; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        .section { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 15px; }
+        .section { background: #f8f9fa; padding: 20px; border-radius: 8px; flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .table-wrapper { flex: 1; overflow-y: auto; }
         h3 { margin-bottom: 15px; color: #333; }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; }
@@ -40,51 +41,13 @@
     <div class="container">
         <div class="header">
             <h1 style="margin: 0;">Manajemen User</h1>
-        </div>
-        
-        <div class="section">
-            <h3>Tambah User Baru</h3>
-            <form id="addUserForm">
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
-                    <div class="form-group">
-                        <label for="username">Username:</label>
-                        <input type="text" id="username" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Password:</label>
-                        <input type="password" id="password" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="full_name">Nama Lengkap:</label>
-                        <input type="text" id="full_name">
-                    </div>
-                    <div class="form-group">
-                        <label for="role">Role:</label>
-                        <select id="role" required>
-                            <option value="">Pilih Role</option>
-                            <option value="admin">Admin</option>
-                            <option value="cs">CS</option>
-                            <option value="teller">Teller</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="counter_access">Akses Counter:</label>
-                        <select id="counter_access">
-                            <option value="">Tidak Ada (Admin)</option>
-                            <option value="cs1">CS 1</option>
-                            <option value="cs2">CS 2</option>
-                            <option value="t1">Teller 1</option>
-                            <option value="t2">Teller 2</option>
-                        </select>
-                    </div>
-                </div>
-                <button type="submit" class="btn-primary">Tambah User</button>
-            </form>
+            <button class="btn-primary" onclick="openAddModal()">+ Tambah User Baru</button>
         </div>
         
         <div class="section">
             <h3>Daftar User</h3>
-            <table id="usersTable">
+            <div class="table-wrapper">
+                <table id="usersTable">
                 <thead>
                     <tr>
                         <th>Username</th>
@@ -100,6 +63,51 @@
                     </tr>
                 </tbody>
             </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Add User -->
+    <div id="addModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Tambah User Baru</h3>
+                <span class="close" onclick="closeAddModal()">&times;</span>
+            </div>
+            <form id="addUserForm">
+                <div class="form-group">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" required>
+                </div>
+                <div class="form-group">
+                    <label for="full_name">Nama Lengkap:</label>
+                    <input type="text" id="full_name">
+                </div>
+                <div class="form-group">
+                    <label for="role">Role:</label>
+                    <select id="role" required>
+                        <option value="">Pilih Role</option>
+                        <option value="admin">Admin</option>
+                        <option value="cs">CS</option>
+                        <option value="teller">Teller</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="counter_access">Akses Counter:</label>
+                    <select id="counter_access">
+                        <option value="">Tidak Ada (Admin)</option>
+                        <option value="cs1">CS 1</option>
+                        <option value="cs2">CS 2</option>
+                        <option value="t1">Teller 1</option>
+                        <option value="t2">Teller 2</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary">Tambah User</button>
+            </form>
         </div>
     </div>
 
@@ -192,6 +200,15 @@
             }
         }
         
+        function openAddModal() {
+            document.getElementById('addUserForm').reset();
+            document.getElementById('addModal').style.display = 'block';
+        }
+        
+        function closeAddModal() {
+            document.getElementById('addModal').style.display = 'none';
+        }
+        
         document.getElementById('addUserForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -212,7 +229,7 @@
                 
                 if (result.success) {
                     alert('User berhasil ditambahkan');
-                    document.getElementById('addUserForm').reset();
+                    closeAddModal();
                     loadUsers();
                 } else {
                     alert(result.message);
@@ -293,8 +310,12 @@
         });
         
         window.onclick = function(event) {
-            const modal = document.getElementById('editModal');
-            if (event.target == modal) {
+            const addModal = document.getElementById('addModal');
+            const editModal = document.getElementById('editModal');
+            if (event.target == addModal) {
+                closeAddModal();
+            }
+            if (event.target == editModal) {
                 closeEditModal();
             }
         }

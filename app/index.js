@@ -271,6 +271,10 @@ app.get('/users', requireAuth, requireRole('admin'), (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'users.html'));
 });
 
+app.get('/printer-settings', requireAuth, requireRole('admin'), (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'printer-settings.html'));
+});
+
 // API Routes
 app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
@@ -610,7 +614,24 @@ app.post('/api/add-queue', async (req, res) => {
             totalTeller: queueTeller.length
         });
         
-        res.json({ success: true, queueItem });
+        // Print receipt
+        console.log(`🖨️  Attempting to print: ${queueItem.number} (${queueItem.type})`);
+        const { printReceipt } = require('./printer');
+        
+        let printError = null;
+        try {
+            await printReceipt(queueItem, pool);
+            console.log(`✅ Print success: ${queueItem.number}`);
+        } catch (err) {
+            printError = err.message || 'Cannot find printer';
+            console.error(`❌ Print failed: ${queueItem.number} - ${printError}`);
+        }
+        
+        res.json({ 
+            success: true, 
+            queueItem,
+            printError: printError
+        });
     } catch (error) {
         console.error('Add queue error:', error);
         res.json({ success: false, message: 'Gagal menambah antrian' });
@@ -810,6 +831,54 @@ app.get('/api/transactions', requireAuth, async (req, res) => {
     } catch (error) {
         console.error('Database error:', error);
         res.json({ success: false, message: 'Gagal mengambil data' });
+    }
+});
+
+// Printer settings API
+app.get('/api/printer-settings', requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM printer_settings ORDER BY id DESC LIMIT 1');
+        if (result.rows.length > 0) {
+            res.json({ success: true, settings: result.rows[0] });
+        } else {
+            res.json({ success: true, settings: { title: 'BTN Syariah', address: 'Jl. Sopo Del No 56 Jakarta Selatan', footer_note: '', paper_width: '58mm' } });
+        }
+    } catch (error) {
+        console.error('Get printer settings error:', error);
+        res.json({ success: false, message: 'Gagal mengambil pengaturan printer' });
+    }
+});
+
+app.post('/api/printer-settings', requireAuth, requireRole('admin'), async (req, res) => {
+    const { title, address, footer_note, paper_width } = req.body;
+    const userId = req.session.user.id;
+    
+    try {
+        await pool.query(
+            'UPDATE printer_settings SET title = $1, address = $2, footer_note = $3, paper_width = $4, updated_at = NOW(), updated_by = $5',
+            [title, address, footer_note, paper_width, userId]
+        );
+        res.json({ success: true, message: 'Pengaturan printer berhasil diupdate' });
+    } catch (error) {
+        console.error('Update printer settings error:', error);
+        res.json({ success: false, message: 'Gagal update pengaturan printer' });
+    }
+});
+
+// Test print
+app.post('/api/test-print', requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+        const { printReceipt } = require('./printer');
+        const testData = {
+            number: 'A001',
+            type: 'cs',
+            name: 'Test Print'
+        };
+        await printReceipt(testData, pool);
+        res.json({ success: true, message: 'Test print berhasil' });
+    } catch (error) {
+        console.error('Test print error:', error);
+        res.json({ success: false, message: 'Test print gagal: ' + error.message });
     }
 });
 

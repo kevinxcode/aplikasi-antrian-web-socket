@@ -94,6 +94,39 @@ async function initDB() {
             )
         `);
         
+        // Printer settings table
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS printer_settings (
+                id SERIAL PRIMARY KEY,
+                title VARCHAR(100) DEFAULT 'BTN Syariah',
+                address VARCHAR(255) DEFAULT 'Jl. Sopo Del No 56 Jakarta Selatan',
+                footer_note TEXT DEFAULT '',
+                paper_width VARCHAR(10) DEFAULT '58mm',
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_by INTEGER REFERENCES users(id)
+            )
+        `);
+        
+        // Add paper_width column if not exists
+        await client.query(`
+            ALTER TABLE printer_settings 
+            ADD COLUMN IF NOT EXISTS paper_width VARCHAR(10) DEFAULT '58mm'
+        `);
+        
+        // Add printer ID columns if not exists
+        await client.query(`
+            ALTER TABLE printer_settings 
+            ADD COLUMN IF NOT EXISTS printer_vendor_id VARCHAR(10),
+            ADD COLUMN IF NOT EXISTS printer_product_id VARCHAR(10)
+        `);
+        
+        // Insert default printer settings
+        await client.query(`
+            INSERT INTO printer_settings (title, address, footer_note, paper_width)
+            SELECT 'BTN Syariah', 'Jl. Sopo Del No 56 Jakarta Selatan', '', '58mm'
+            WHERE NOT EXISTS (SELECT 1 FROM printer_settings LIMIT 1)
+        `);
+        
         await client.query(`
             INSERT INTO premium_activation (is_activated)
             SELECT FALSE

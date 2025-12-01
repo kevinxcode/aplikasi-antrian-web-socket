@@ -37,6 +37,13 @@ async function ambilNomor(type) {
             const modal = document.getElementById('resultModal');
             modal.classList.add('show');
             
+            // Show print error if exists
+            if (result.printError) {
+                setTimeout(() => {
+                    alert('⚠️ Nomor antrian berhasil dibuat, tetapi print gagal: ' + result.printError);
+                }, 500);
+            }
+            
             setTimeout(() => {
                 modal.classList.remove('show');
             }, 2000);

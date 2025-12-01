@@ -6,6 +6,7 @@ Aplikasi Node.js untuk sistem antrian real-time menggunakan WebSocket dengan 2 c
 
 ### Fitur Umum
 - ✅ Tambah antrian baru dengan nama (opsional)
+- ✅ **Cetak struk otomatis** ke printer thermal 58mm
 - ✅ 4 Counter/Loket terpisah (CS1, CS2, Teller1, Teller2)
 - ✅ 2 Tipe antrian (CS dan Teller)
 - ✅ Panggil antrian berikutnya per loket
@@ -19,6 +20,8 @@ Aplikasi Node.js untuk sistem antrian real-time menggunakan WebSocket dengan 2 c
 - ✅ Dashboard lengkap semua counter
 - ✅ **Export data transaksi ke CSV** dengan filter
 - ✅ **Manajemen User** (tambah, hapus, lihat)
+- ✅ **Pengaturan Printer Struk** (judul, alamat, footer)
+- ✅ **Test Print** untuk cek printer
 - ✅ Reset antrian
 - ✅ Pengaturan display (marquee, slide images)
 
@@ -123,6 +126,17 @@ Jika deploy di server, ganti `localhost` dengan IP server Anda.
         └── display.html        # Display screen
 ```
 
+## 🖨️ Setup Printer Thermal
+
+Untuk mengaktifkan fitur cetak struk otomatis:
+
+1. Hubungkan printer thermal 58mm ke USB
+2. Install dependencies: `cd app && npm install`
+3. Test printer: `node test-printer.js`
+4. Konfigurasi struk di menu admin
+
+Panduan lengkap: [PRINTER-SETUP.md](PRINTER-SETUP.md)
+
 ## 🎯 Cara Penggunaan
 
 ### 1. Login
@@ -154,6 +168,17 @@ Jika deploy di server, ganti `localhost` dengan IP server Anda.
 3. Klik "Tambah User"
 4. User baru bisa langsung login
 
+**Pengaturan Printer:**
+1. Klik menu "Pengaturan Printer"
+2. Isi form pengaturan struk:
+   - Judul (nama perusahaan)
+   - Alamat lengkap
+   - Catatan footer (opsional)
+   - Ukuran kertas (58mm atau 80mm)
+3. Preview struk akan update otomatis
+4. Klik "Test Print" untuk coba cetak
+5. Klik "Simpan Pengaturan"
+
 ### 3. CS Counter (CS1/CS2)
 1. Login dengan username cs1 atau cs2
 2. Otomatis masuk ke counter masing-masing
@@ -173,7 +198,8 @@ Jika deploy di server, ganti `localhost` dengan IP server Anda.
 2. Pilih tipe layanan (CS atau Teller)
 3. Masukkan nama (opsional)
 4. Klik "Ambil Nomor"
-5. Nomor akan masuk ke antrian
+5. **Printer otomatis cetak struk**
+6. Nomor akan masuk ke antrian dan tampil di display
 
 ### 6. Display Screen (Public)
 - Tampilkan di TV/Monitor terpisah

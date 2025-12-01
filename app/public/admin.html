@@ -86,6 +86,7 @@
             <a class="nav-item" onclick="showPage('pages')" id="navPages">Pages</a>
             <a class="nav-item" onclick="showPage('users')" id="navUsers" style="display:none;">Users</a>
             <a class="nav-item" onclick="showPage('settings')" id="navSettings" style="display:none;">Settings</a>
+            <a class="nav-item" onclick="showPage('printer')" id="navPrinter" style="display:none;">Printer</a>
             <a class="nav-item" onclick="showPage('slides')" id="navSlides" style="display:none;">Slides</a>
             <a class="nav-item" onclick="showPage('export')" id="navExport" style="display:none;">Export</a>
         </nav>
@@ -194,9 +195,8 @@
 
         <!-- USERS -->
         <div id="users" class="page">
-            <div class="section">
-                <h2>👥 Manajemen User</h2>
-                <iframe src="/users" style="width: 100%; height: 80vh; border: none; border-radius: 8px;"></iframe>
+            <div class="section" style="padding: 10px;">
+                <iframe src="/users" style="width: 100%; height: calc(100vh - 120px); border: none; border-radius: 8px;"></iframe>
             </div>
         </div>
 
@@ -205,6 +205,14 @@
             <div class="section">
                 <h2>⚙️ Pengaturan Display</h2>
                 <iframe src="/settings" style="width: 100%; height: 80vh; border: none; border-radius: 8px;"></iframe>
+            </div>
+        </div>
+
+        <!-- PRINTER -->
+        <div id="printer" class="page">
+            <div class="section">
+                <h2>🖨️ Pengaturan Printer Struk</h2>
+                <iframe src="/printer-settings" style="width: 100%; height: 80vh; border: none; border-radius: 8px;"></iframe>
             </div>
         </div>
 
@@ -279,6 +287,7 @@
                     if (data.user.role === 'admin') {
                         document.getElementById('navUsers').style.display = 'block';
                         document.getElementById('navSettings').style.display = 'block';
+                        document.getElementById('navPrinter').style.display = 'block';
                         document.getElementById('navSlides').style.display = 'block';
                         document.getElementById('navExport').style.display = 'block';
                     }
