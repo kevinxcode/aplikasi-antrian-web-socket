@@ -1,7 +1,7 @@
 @font-face {
     font-family: 'Poppins';
-    src: url('assets/Poppins-Regular.ttf') format('truetype');
-    font-weight: 400;
+    src: url('assets/Poppins-Bold.ttf') format('truetype');
+    font-weight: 700;
     font-style: normal;
 }
 
@@ -114,7 +114,7 @@ body {
 }
 
 .service-label {
-    font-size: 48px;
+    font-size: 65px;
     font-weight: bold;
     color: #0057d9;
     margin: 0;
@@ -141,7 +141,7 @@ body {
 
 .datetime-box {
     position: absolute;
-    left: 10px;
+    left: 0px;
     top: -30px;
     background: #ff0000;
     padding: 12px 25px;
