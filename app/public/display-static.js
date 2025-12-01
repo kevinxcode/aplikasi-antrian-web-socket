@@ -82,20 +82,20 @@ async function loadDisplaySettings() {
                 if (headerLogo) headerLogo.src = result.settings.logo_base64;
             } else {
                 const headerLogo = document.getElementById('headerLogo');
-                if (headerLogo) headerLogo.src = 'assets/logo.png';
+                if (headerLogo) headerLogo.src = '';
             }
             if (result.settings.left_image_base64) {
                 const bgImage = document.getElementById('bgImage');
                 if (bgImage) bgImage.src = result.settings.left_image_base64;
             } else {
                 const bgImage = document.getElementById('bgImage');
-                if (bgImage) bgImage.src = 'assets/bg-left.png';
+                if (bgImage) bgImage.src = '';
             }
         }
     } catch (error) {
         console.error('Error loading display settings:', error);
-        document.getElementById('headerLogo').src = 'assets/logo.png';
-        document.getElementById('bgImage').src = 'assets/bg-left.png';
+        document.getElementById('headerLogo').src = '';
+        document.getElementById('bgImage').src = '';
     }
 }
 

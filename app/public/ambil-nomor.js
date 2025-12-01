@@ -40,8 +40,8 @@ async function loadDisplaySettings() {
                 // Fallback to default
                 const topLogo = document.getElementById('topLogo');
                 const footerLogo = document.getElementById('footerLogo');
-                if (topLogo) topLogo.src = 'assets/logo.png';
-                if (footerLogo) footerLogo.src = 'assets/logo.png';
+                if (topLogo) topLogo.src = '';
+                if (footerLogo) footerLogo.src = '';
             }
             // Update left image
             if (result.settings.left_image_base64) {
@@ -50,15 +50,15 @@ async function loadDisplaySettings() {
             } else {
                 // Fallback to default
                 const bgImage = document.getElementById('bgImage');
-                if (bgImage) bgImage.src = 'assets/bg-left.png';
+                if (bgImage) bgImage.src = '';
             }
         }
     } catch (error) {
         console.error('Error loading display settings:', error);
         // Fallback to default on error
-        document.getElementById('topLogo').src = 'assets/logo.png';
-        document.getElementById('footerLogo').src = 'assets/logo.png';
-        document.getElementById('bgImage').src = 'assets/bg-left.png';
+        document.getElementById('topLogo').src = '';
+        document.getElementById('footerLogo').src = '';
+        document.getElementById('bgImage').src = '';
     }
 }
 

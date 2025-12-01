@@ -123,9 +123,12 @@
                 const result = await saveResponse.json();
                 
                 if (result.success) {
-                    showAlert(type === 'logo' ? 'Logo berhasil disimpan' : 'Background berhasil disimpan', 'success');
+                    const message = type === 'logo' ? 'Logo berhasil disimpan' : 'Background berhasil disimpan';
+                    showAlert(message, 'success');
+                    alert('✅ ' + message);
                 } else {
                     showAlert(result.message || 'Gagal menyimpan', 'error');
+                    alert('❌ ' + (result.message || 'Gagal menyimpan'));
                 }
             } catch (error) {
                 showAlert('Error: ' + error.message, 'error');
