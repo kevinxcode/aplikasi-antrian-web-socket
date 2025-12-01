@@ -40,8 +40,8 @@ async function ambilNomor(type) {
             // Show print error if exists
             if (result.printError) {
                 setTimeout(() => {
-                    alert('⚠️ Nomor antrian berhasil dibuat, tetapi print gagal: ' + result.printError);
-                }, 500);
+                    showErrorModal('Nomor antrian berhasil dibuat, tetapi print gagal: ' + result.printError);
+                }, 2500);
             }
             
             setTimeout(() => {
@@ -49,6 +49,17 @@ async function ambilNomor(type) {
             }, 2000);
         }
     } catch (error) {
-        alert('Gagal mengambil nomor antrian');
+        showErrorModal('Gagal mengambil nomor antrian');
     }
+}
+
+// Show error modal
+function showErrorModal(message) {
+    document.getElementById('errorMessage').textContent = message;
+    const errorModal = document.getElementById('errorModal');
+    errorModal.classList.add('show');
+    
+    setTimeout(() => {
+        errorModal.classList.remove('show');
+    }, 4000);
 }
