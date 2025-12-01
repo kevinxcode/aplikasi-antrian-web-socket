@@ -53,9 +53,18 @@ async function initDB() {
             CREATE TABLE IF NOT EXISTS display_settings (
                 id SERIAL PRIMARY KEY,
                 marquee_text TEXT DEFAULT 'Selamat Datang di Sistem Antrian',
+                logo_base64 TEXT,
+                left_image_base64 TEXT,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_by INTEGER REFERENCES users(id)
             )
+        `);
+        
+        // Add logo and left_image columns if not exists
+        await client.query(`
+            ALTER TABLE display_settings 
+            ADD COLUMN IF NOT EXISTS logo_base64 TEXT,
+            ADD COLUMN IF NOT EXISTS left_image_base64 TEXT
         `);
         
         // Image slides table

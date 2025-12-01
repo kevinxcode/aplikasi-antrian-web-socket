@@ -87,6 +87,7 @@
             <a class="nav-item" onclick="showPage('pages')" id="navPages">Pages</a>
             <a class="nav-item" onclick="showPage('users')" id="navUsers" style="display:none;">Users</a>
             <a class="nav-item" onclick="showPage('settings')" id="navSettings" style="display:none;">Settings</a>
+            <a class="nav-item" onclick="showPage('default-settings')" id="navDefaultSettings" style="display:none;">Default Setting</a>
             <a class="nav-item" onclick="showPage('printer')" id="navPrinter" style="display:none;">Printer</a>
             <a class="nav-item" onclick="showPage('slides')" id="navSlides" style="display:none;">Slides</a>
             <a class="nav-item" onclick="showPage('export')" id="navExport" style="display:none;">Export</a>
@@ -209,6 +210,14 @@
             </div>
         </div>
 
+        <!-- DEFAULT SETTINGS -->
+        <div id="default-settings" class="page">
+            <div class="section">
+                <h2>🔧 Default Setting</h2>
+                <iframe src="/default-settings" style="width: 100%; height: 80vh; border: none; border-radius: 8px;"></iframe>
+            </div>
+        </div>
+
         <!-- PRINTER -->
         <div id="printer" class="page">
             <div class="section">
@@ -288,6 +297,7 @@
                     if (data.user.role === 'admin') {
                         document.getElementById('navUsers').style.display = 'block';
                         document.getElementById('navSettings').style.display = 'block';
+                        document.getElementById('navDefaultSettings').style.display = 'block';
                         document.getElementById('navPrinter').style.display = 'block';
                         document.getElementById('navSlides').style.display = 'block';
                         document.getElementById('navExport').style.display = 'block';

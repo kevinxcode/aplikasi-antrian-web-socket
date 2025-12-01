@@ -67,7 +67,7 @@ fetchQueueData();
 // Fetch data setiap 3 detik sebagai fallback
 setInterval(fetchQueueData, 3000);
 
-// Load display settings (marquee only)
+// Load display settings
 async function loadDisplaySettings() {
     try {
         const response = await fetch('/api/display-settings');
@@ -77,9 +77,25 @@ async function loadDisplaySettings() {
             if (result.settings.marquee_text) {
                 document.getElementById('marqueeText').textContent = result.settings.marquee_text;
             }
+            if (result.settings.logo_base64) {
+                const headerLogo = document.getElementById('headerLogo');
+                if (headerLogo) headerLogo.src = result.settings.logo_base64;
+            } else {
+                const headerLogo = document.getElementById('headerLogo');
+                if (headerLogo) headerLogo.src = 'assets/logo.png';
+            }
+            if (result.settings.left_image_base64) {
+                const bgImage = document.getElementById('bgImage');
+                if (bgImage) bgImage.src = result.settings.left_image_base64;
+            } else {
+                const bgImage = document.getElementById('bgImage');
+                if (bgImage) bgImage.src = 'assets/bg-left.png';
+            }
         }
     } catch (error) {
         console.error('Error loading display settings:', error);
+        document.getElementById('headerLogo').src = 'assets/logo.png';
+        document.getElementById('bgImage').src = 'assets/bg-left.png';
     }
 }
 
@@ -90,6 +106,14 @@ loadDisplaySettings();
 socket.on('displaySettingsUpdated', (data) => {
     if (data.marquee_text) {
         document.getElementById('marqueeText').textContent = data.marquee_text;
+    }
+    if (data.logo_base64) {
+        const headerLogo = document.getElementById('headerLogo');
+        if (headerLogo) headerLogo.src = data.logo_base64;
+    }
+    if (data.left_image_base64) {
+        const bgImage = document.getElementById('bgImage');
+        if (bgImage) bgImage.src = data.left_image_base64;
     }
 });
 

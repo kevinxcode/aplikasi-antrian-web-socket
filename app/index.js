@@ -275,6 +275,10 @@ app.get('/printer-settings', requireAuth, requireRole('admin'), (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'printer-settings.html'));
 });
 
+app.get('/default-settings', requireAuth, requireRole('admin'), (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'default-settings.html'));
+});
+
 // API Routes
 app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
@@ -434,7 +438,7 @@ app.get('/api/display-settings', async (req, res) => {
         if (result.rows.length > 0) {
             res.json({ success: true, settings: result.rows[0] });
         } else {
-            res.json({ success: true, settings: { marquee_text: 'Selamat Datang di Sistem Antrian' } });
+            res.json({ success: true, settings: { marquee_text: 'Selamat Datang di Sistem Antrian', logo_base64: null, left_image_base64: null } });
         }
     } catch (error) {
         console.error('Get display settings error:', error);
@@ -443,16 +447,16 @@ app.get('/api/display-settings', async (req, res) => {
 });
 
 app.post('/api/display-settings', requireAuth, requireRole('admin'), async (req, res) => {
-    const { marquee_text } = req.body;
+    const { marquee_text, logo_base64, left_image_base64 } = req.body;
     const userId = req.session.user.id;
     
     try {
         await pool.query(
-            'UPDATE display_settings SET marquee_text = $1, updated_at = NOW(), updated_by = $2',
-            [marquee_text, userId]
+            'UPDATE display_settings SET marquee_text = $1, logo_base64 = $2, left_image_base64 = $3, updated_at = NOW(), updated_by = $4',
+            [marquee_text, logo_base64, left_image_base64, userId]
         );
         
-        io.emit('displaySettingsUpdated', { marquee_text });
+        io.emit('displaySettingsUpdated', { marquee_text, logo_base64, left_image_base64 });
         res.json({ success: true, message: 'Pengaturan berhasil diupdate' });
     } catch (error) {
         console.error('Update display settings error:', error);

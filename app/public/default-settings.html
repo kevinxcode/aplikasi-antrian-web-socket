@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Default Settings</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; }
+        .section { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        h2 { color: #333; margin-bottom: 20px; font-size: 22px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: #555; }
+        input[type="file"] { width: 100%; padding: 10px; border: 2px dashed #ddd; border-radius: 5px; cursor: pointer; }
+        button { padding: 12px 30px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.3s; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-primary:hover { background: #5568d3; }
+        .preview { margin-top: 15px; text-align: center; }
+        .preview img { max-width: 100%; max-height: 300px; border-radius: 8px; border: 2px solid #ddd; }
+        .alert { padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .alert-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="alertContainer"></div>
+        
+        <div class="section">
+            <h2>🖼️ Logo Default</h2>
+            <div class="form-group">
+                <label>Upload Logo (akan muncul di display dan ambil nomor)</label>
+                <input type="file" id="logoFile" accept="image/*" onchange="previewImage('logo')">
+                <div class="preview" id="logoPreview"></div>
+            </div>
+            <button class="btn-primary" onclick="saveImage('logo')">Simpan Logo</button>
+        </div>
+
+        <div class="section">
+            <h2>🎨 Background Kiri Default</h2>
+            <div class="form-group">
+                <label>Upload Background Kiri (akan muncul di display dan ambil nomor)</label>
+                <input type="file" id="bgFile" accept="image/*" onchange="previewImage('bg')">
+                <div class="preview" id="bgPreview"></div>
+            </div>
+            <button class="btn-primary" onclick="saveImage('bg')">Simpan Background</button>
+        </div>
+    </div>
+
+    <script>
+        let logoBase64 = '';
+        let bgBase64 = '';
+
+        // Load existing settings
+        async function loadSettings() {
+            try {
+                const response = await fetch('/api/display-settings');
+                const result = await response.json();
+                
+                if (result.success && result.settings) {
+                    if (result.settings.logo_base64) {
+                        document.getElementById('logoPreview').innerHTML = `<img src="${result.settings.logo_base64}" alt="Logo">`;
+                        logoBase64 = result.settings.logo_base64;
+                    }
+                    if (result.settings.left_image_base64) {
+                        document.getElementById('bgPreview').innerHTML = `<img src="${result.settings.left_image_base64}" alt="Background">`;
+                        bgBase64 = result.settings.left_image_base64;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading settings:', error);
+            }
+        }
+
+        loadSettings();
+
+        function previewImage(type) {
+            const fileInput = type === 'logo' ? document.getElementById('logoFile') : document.getElementById('bgFile');
+            const preview = type === 'logo' ? document.getElementById('logoPreview') : document.getElementById('bgPreview');
+            const file = fileInput.files[0];
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const base64 = e.target.result;
+                    preview.innerHTML = `<img src="${base64}" alt="${type}">`;
+                    
+                    if (type === 'logo') {
+                        logoBase64 = base64;
+                    } else {
+                        bgBase64 = base64;
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        async function saveImage(type) {
+            const base64Data = type === 'logo' ? logoBase64 : bgBase64;
+            
+            if (!base64Data) {
+                showAlert('Pilih gambar terlebih dahulu', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/display-settings');
+                const current = await response.json();
+                
+                const updateData = {
+                    marquee_text: current.settings?.marquee_text || 'Selamat Datang',
+                    logo_base64: type === 'logo' ? base64Data : (current.settings?.logo_base64 || null),
+                    left_image_base64: type === 'bg' ? base64Data : (current.settings?.left_image_base64 || null)
+                };
+
+                const saveResponse = await fetch('/api/display-settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updateData)
+                });
+
+                const result = await saveResponse.json();
+                
+                if (result.success) {
+                    showAlert(type === 'logo' ? 'Logo berhasil disimpan' : 'Background berhasil disimpan', 'success');
+                } else {
+                    showAlert(result.message || 'Gagal menyimpan', 'error');
+                }
+            } catch (error) {
+                showAlert('Error: ' + error.message, 'error');
+            }
+        }
+
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
+            alertContainer.innerHTML = `<div class="alert ${alertClass}">${message}</div>`;
+            
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

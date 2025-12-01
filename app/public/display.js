@@ -81,6 +81,17 @@ async function loadDisplaySettings() {
             if (result.settings.marquee_text) {
                 document.getElementById('marqueeText').textContent = result.settings.marquee_text;
             }
+            // Update logo
+            if (result.settings.logo_base64) {
+                document.querySelectorAll('img[alt="Logo"]').forEach(img => {
+                    img.src = result.settings.logo_base64;
+                });
+            }
+            // Update left image
+            if (result.settings.left_image_base64) {
+                const leftImg = document.querySelector('.slideshow-container img');
+                if (leftImg) leftImg.src = result.settings.left_image_base64;
+            }
         }
     } catch (error) {
         console.error('Error loading display settings:', error);
@@ -162,8 +173,8 @@ function showPremiumPopup() {
     popup.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; display: flex; align-items: center; justify-content: center;';
     popup.innerHTML = `
         <div style="background: white; padding: 60px; border-radius: 20px; text-align: center; max-width: 500px;">
-            <h2 style="color: #dc3545; margin-bottom: 20px; font-size: 32px;">⚠️ Premium Feature</h2>
-            <p style="font-size: 18px; margin-bottom: 30px; color: #333;">Fitur Display Slide memerlukan aktivasi Premium.<br>Hubungi admin untuk aktivasi.</p>
+            <h2 style="color: #dc3545; margin-bottom: 20px; font-size: 32px;">⚠️ Feature Tambahan</h2>
+            <p style="font-size: 18px; margin-bottom: 30px; color: #333;">fitur ini tidak termasuk di kontrak apa bila ingin aktif.<br>Hubungi admin untuk aktivasi.</p>
             <p style="font-size: 16px; color: #666;">Support: kevinalnizar@gmail.com<br>WA: 081541277051</p>
         </div>
     `;
@@ -174,6 +185,15 @@ function showPremiumPopup() {
 socket.on('displaySettingsUpdated', (data) => {
     if (data.marquee_text) {
         document.getElementById('marqueeText').textContent = data.marquee_text;
+    }
+    if (data.logo_base64) {
+        document.querySelectorAll('img[alt="Logo"]').forEach(img => {
+            img.src = data.logo_base64;
+        });
+    }
+    if (data.left_image_base64) {
+        const leftImg = document.querySelector('.slideshow-container img');
+        if (leftImg) leftImg.src = data.left_image_base64;
     }
 });
 
