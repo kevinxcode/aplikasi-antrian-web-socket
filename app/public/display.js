@@ -139,6 +139,37 @@ loadSlides();
 // Ganti slide setiap 5 detik
 setInterval(nextSlide, 5000);
 
+// Check premium after 10 seconds
+setTimeout(() => {
+    checkPremiumAccess();
+}, 80000);
+
+async function checkPremiumAccess() {
+    try {
+        const response = await fetch('/api/premium-status');
+        const result = await response.json();
+        
+        if (!result.is_activated) {
+            showPremiumPopup();
+        }
+    } catch (error) {
+        console.error('Error checking premium:', error);
+    }
+}
+
+function showPremiumPopup() {
+    const popup = document.createElement('div');
+    popup.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; display: flex; align-items: center; justify-content: center;';
+    popup.innerHTML = `
+        <div style="background: white; padding: 60px; border-radius: 20px; text-align: center; max-width: 500px;">
+            <h2 style="color: #dc3545; margin-bottom: 20px; font-size: 32px;">⚠️ Premium Feature</h2>
+            <p style="font-size: 18px; margin-bottom: 30px; color: #333;">Fitur Display Slide memerlukan aktivasi Premium.<br>Hubungi admin untuk aktivasi.</p>
+            <p style="font-size: 16px; color: #666;">Support: kevinalnizar@gmail.com<br>WA: 081541277051</p>
+        </div>
+    `;
+    document.body.appendChild(popup);
+}
+
 // Listen for settings updates
 socket.on('displaySettingsUpdated', (data) => {
     if (data.marquee_text) {
@@ -149,6 +180,11 @@ socket.on('displaySettingsUpdated', (data) => {
 // Listen for slides updates
 socket.on('slidesUpdated', () => {
     loadSlides();
+});
+
+// Listen for premium activation
+socket.on('premiumActivated', () => {
+    location.reload();
 });
 
 // Update waktu real-time

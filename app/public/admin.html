@@ -9,7 +9,7 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; }
         
         /* Header & Navigation */
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { background: #0066ff; color: white; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .header-top { display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .logo { font-size: 24px; font-weight: bold; }
         .user-info { display: flex; align-items: center; gap: 15px; }
@@ -212,7 +212,17 @@
         <div id="slides" class="page">
             <div class="section">
                 <h2>📸 Manajemen Slide Gambar</h2>
-                <iframe src="/slides" style="width: 100%; height: 80vh; border: none; border-radius: 8px;"></iframe>
+                <div id="premiumStatus" style="text-align: center; padding: 20px; background: #f8f9fa; border-radius: 8px; margin-bottom: 20px;">
+                    <p style="font-size: 16px; margin-bottom: 15px;">Status Premium: <span id="statusText" style="font-weight: bold;">Checking...</span></p>
+                    <div id="activationForm" style="display: none;">
+                        <input type="password" id="passcode" placeholder="Masukkan Passcode" style="width: 250px; padding: 10px; font-size: 14px; margin-right: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                        <button class="btn-primary" onclick="activatePremium()" style="padding: 10px 25px; font-size: 14px;">Aktivasi Premium</button>
+                    </div>
+                    <div id="activatedMessage" style="display: none;">
+                        <span style="color: #27ae60; font-weight: bold;">✅ Premium Aktif</span>
+                    </div>
+                </div>
+                <iframe src="/slides" style="width: 100%; height: 70vh; border: none; border-radius: 8px;"></iframe>
             </div>
         </div>
 
@@ -272,8 +282,6 @@
                         document.getElementById('navSlides').style.display = 'block';
                         document.getElementById('navExport').style.display = 'block';
                     }
-                } else {
-                    window.location.href = '/login.html';
                 }
             })
             .catch(() => window.location.href = '/login.html');
@@ -283,6 +291,10 @@
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             document.getElementById(pageId).classList.add('active');
             event.target.classList.add('active');
+            
+            if (pageId === 'slides') {
+                checkPremiumStatus();
+            }
         }
         
         async function logout() {
@@ -402,6 +414,57 @@
             if (type) params.append('type', type);
             
             window.location.href = `/api/export-transactions?${params.toString()}`;
+        }
+        
+        async function checkPremiumStatus() {
+            try {
+                const response = await fetch('/api/premium-status');
+                const result = await response.json();
+                
+                if (result.success) {
+                    if (result.is_activated) {
+                        document.getElementById('statusText').textContent = 'Aktif';
+                        document.getElementById('statusText').style.color = '#27ae60';
+                        document.getElementById('activatedMessage').style.display = 'inline';
+                        document.getElementById('activationForm').style.display = 'none';
+                    } else {
+                        document.getElementById('statusText').textContent = 'Belum Aktif';
+                        document.getElementById('statusText').style.color = '#dc3545';
+                        document.getElementById('activationForm').style.display = 'inline';
+                        document.getElementById('activatedMessage').style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking premium status:', error);
+            }
+        }
+        
+        async function activatePremium() {
+            const passcode = document.getElementById('passcode').value;
+            
+            if (!passcode) {
+                alert('Masukkan passcode');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/activate-premium', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ passcode })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Premium berhasil diaktifkan!');
+                    checkPremiumStatus();
+                } else {
+                    alert(result.message || 'Aktivasi gagal');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
         }
     </script>
 </body>

@@ -426,6 +426,45 @@ app.get('/api/image-slides', async (req, res) => {
     }
 });
 
+app.get('/api/premium-status', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT is_activated FROM premium_activation LIMIT 1');
+        res.json({ success: true, is_activated: result.rows[0]?.is_activated || false });
+    } catch (error) {
+        console.error('Get premium status error:', error);
+        res.json({ success: false, message: 'Gagal mengambil status premium' });
+    }
+});
+
+app.post('/api/activate-premium', requireAuth, requireRole('admin'), async (req, res) => {
+    const { passcode } = req.body;
+    
+    try {
+        const result = await pool.query('SELECT id, passcode_hash FROM premium_passcode LIMIT 1');
+        
+        if (result.rows.length === 0) {
+            return res.json({ success: false, message: 'Passcode tidak ditemukan' });
+        }
+        
+        const match = await bcrypt.compare(passcode, result.rows[0].passcode_hash);
+        
+        if (!match) {
+            return res.json({ success: false, message: 'Passcode salah' });
+        }
+        
+        await pool.query(
+            'UPDATE premium_activation SET is_activated = TRUE, passcode_id = $1, activated_at = NOW(), activated_by = $2',
+            [result.rows[0].id, req.session.user.id]
+        );
+        
+        io.emit('premiumActivated');
+        res.json({ success: true, message: 'Premium berhasil diaktifkan' });
+    } catch (error) {
+        console.error('Activate premium error:', error);
+        res.json({ success: false, message: 'Gagal aktivasi premium' });
+    }
+});
+
 app.post('/api/add-queue', async (req, res) => {
     const { type, name } = req.body;
     

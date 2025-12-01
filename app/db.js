@@ -68,6 +68,37 @@ async function initDB() {
                 created_by INTEGER REFERENCES users(id)
             )
         `);
+        
+        // Premium activation table
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS premium_activation (
+                id SERIAL PRIMARY KEY,
+                is_activated BOOLEAN DEFAULT FALSE,
+                passcode_id INTEGER,
+                activated_at TIMESTAMP,
+                activated_by INTEGER REFERENCES users(id)
+            )
+        `);
+        
+        await client.query(`
+            ALTER TABLE premium_activation 
+            ADD COLUMN IF NOT EXISTS passcode_id INTEGER
+        `);
+        
+        // Premium passcode table
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS premium_passcode (
+                id SERIAL PRIMARY KEY,
+                passcode_hash VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        
+        await client.query(`
+            INSERT INTO premium_activation (is_activated)
+            SELECT FALSE
+            WHERE NOT EXISTS (SELECT 1 FROM premium_activation LIMIT 1)
+        `);
 
         // Insert default display settings
         await client.query(`
@@ -78,6 +109,12 @@ async function initDB() {
 
         // Insert default users if not exists
         const bcrypt = require('bcrypt');
+        const defaultPasscode = await bcrypt.hash('kevin123', 10);
+        await client.query(`
+            INSERT INTO premium_passcode (passcode_hash)
+            SELECT $1
+            WHERE NOT EXISTS (SELECT 1 FROM premium_passcode LIMIT 1)
+        `, [defaultPasscode]);
         const defaultUsers = [
             { username: 'admin', password: await bcrypt.hash('admin123', 10), role: 'admin', counter_access: null },
             { username: 'cs1', password: await bcrypt.hash('cs123', 10), role: 'cs', counter_access: 'cs1' },
