@@ -8,7 +8,8 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: url('assets/bg1.png') no-repeat center center fixed;
+            background-size: cover;
             height: 100vh;
             display: flex;
             align-items: center;
@@ -44,17 +45,18 @@
         }
         button:hover { opacity: 0.9; }
         .error { color: red; text-align: center; margin-top: 10px; display: none; }
-        .info { background: #e3f2fd; padding: 15px; border-radius: 5px; margin-bottom: 20px; font-size: 14px; }
+        .info { background: #ffffff; padding: 15px; border-radius: 5px; margin-bottom: 20px; font-size: 14px; text-align: center; }
+        .info img { max-width: 200px; height: auto; }
+        .support { text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 13px; color: #666; }
+        .support a { color: #667eea; text-decoration: none; }
+        .support a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
     <div class="login-container">
-        <h1>🔐 Login</h1>
+        <h1>🔐 Sistem Antrian</h1>
         <div class="info">
-            <strong>Default Users:</strong><br>
-            Admin: admin / admin123<br>
-            CS: cs1 / cs123<br>
-            Teller: teller1 / teller123
+            <img src="assets/logo.png" alt="Logo">
         </div>
         <form id="loginForm">
             <div class="form-group">
@@ -68,6 +70,13 @@
             <button type="submit">Login</button>
             <div class="error" id="error"></div>
         </form>
+        <div class="support">
+            <strong>Support:</strong><br>
+            📧 <a href="mailto:kevinalnizar@gmail.com">kevinalnizar@gmail.com</a><br>
+            📱 <a href="https://wa.me/6281541277051">081541277051</a><br>
+            🌐 <a href="https://syntra-enterprise.com/" target="_blank">syntra-enterprise.com</a><br>
+            🌐 <a href="https://www.fadeintech.com/" target="_blank">fadeintech.com</a>
+        </div>
     </div>
 
     <script>

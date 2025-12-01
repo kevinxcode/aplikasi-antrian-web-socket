@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manajemen Slide Gambar</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #333; margin-bottom: 30px; }
+        .upload-area { border: 2px dashed #ddd; padding: 40px; text-align: center; border-radius: 8px; cursor: pointer; margin-bottom: 30px; }
+        .upload-area:hover { background: #f8f9fa; border-color: #667eea; }
+        .upload-area p { font-size: 18px; color: #666; margin-bottom: 10px; }
+        .image-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+        .image-item { position: relative; border: 2px solid #ddd; border-radius: 8px; overflow: hidden; background: #f8f9fa; }
+        .image-item img { width: 100%; height: 200px; object-fit: cover; display: block; }
+        .image-info { padding: 10px; background: white; }
+        .image-info small { color: #666; }
+        .btn-delete { position: absolute; top: 10px; right: 10px; padding: 8px 15px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-delete:hover { background: #c82333; }
+        .empty-state { text-align: center; padding: 40px; color: #999; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📸 Manajemen Slide Gambar</h1>
+
+        <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+            <p>📁 Klik untuk upload gambar</p>
+            <small>Format: JPG, PNG | Max: 2MB | Maksimal 3 gambar</small>
+        </div>
+        <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="uploadImage(event)">
+        
+        <div class="image-grid" id="imageGrid">
+            <div class="empty-state">Memuat...</div>
+        </div>
+    </div>
+
+    <script>
+        // Check authentication
+        fetch('/api/user')
+            .then(res => res.json())
+            .then(data => {
+                if (!data.user || data.user.role !== 'admin') {
+                    alert('Hanya admin yang dapat mengakses halaman ini');
+                    window.location.href = '/admin';
+                }
+            })
+            .catch(() => window.location.href = '/login');
+
+        loadSlides();
+
+        async function loadSlides() {
+            try {
+                const response = await fetch('/api/image-slides');
+                const result = await response.json();
+                
+                if (result.success) {
+                    displaySlides(result.slides);
+                }
+            } catch (error) {
+                console.error('Error loading slides:', error);
+            }
+        }
+
+        function displaySlides(slides) {
+            const grid = document.getElementById('imageGrid');
+            
+            if (slides.length === 0) {
+                grid.innerHTML = '<div class="empty-state">Belum ada gambar slide</div>';
+                return;
+            }
+            
+            grid.innerHTML = slides.map(slide => `
+                <div class="image-item">
+                    <img src="${slide.image_data}" alt="Slide ${slide.id}">
+                    <button class="btn-delete" onclick="deleteSlide(${slide.id})">Hapus</button>
+                    <div class="image-info">
+                        <small>Urutan: ${slide.display_order}</small>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function uploadImage(event) {
+            const file = event.target.files[0];
+            
+            if (!file) return;
+            
+            if (file.size > 2 * 1024 * 1024) {
+                alert('Ukuran file maksimal 2MB');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const response = await fetch('/api/upload-image', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            image_data: e.target.result
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Upload failed: ' + response.status);
+                    }
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        alert('Gambar berhasil diupload');
+                        loadSlides();
+                    } else {
+                        alert(result.message || 'Gagal upload gambar');
+                    }
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    alert('Error: ' + error.message);
+                }
+            };
+            
+            reader.readAsDataURL(file);
+            event.target.value = '';
+        }
+
+        async function deleteSlide(imageId) {
+            if (!confirm('Yakin ingin menghapus gambar ini?')) return;
+            
+            try {
+                const response = await fetch('/api/delete-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ imageId })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Gambar berhasil dihapus');
+                    loadSlides();
+                } else {
+                    alert(result.message || 'Gagal hapus gambar');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

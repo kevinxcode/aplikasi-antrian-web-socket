@@ -4,15 +4,35 @@ Aplikasi Node.js untuk sistem antrian real-time menggunakan WebSocket dengan 2 c
 
 ## 📋 Fitur
 
+### Fitur Umum
 - ✅ Tambah antrian baru dengan nama (opsional)
-- ✅ 2 Counter/Loket terpisah
+- ✅ 4 Counter/Loket terpisah (CS1, CS2, Teller1, Teller2)
+- ✅ 2 Tipe antrian (CS dan Teller)
 - ✅ Panggil antrian berikutnya per loket
 - ✅ Panggil ulang nomor antrian tertentu
 - ✅ Display real-time untuk nomor yang dipanggil
 - ✅ Update otomatis menggunakan WebSocket
-- ✅ Interface admin dan display terpisah
-- ✅ Format nomor 3 digit (001, 002, 003, dst)
+- ✅ Format nomor dengan prefix (A001 untuk CS, B001 untuk Teller)
+- ✅ Database PostgreSQL untuk persistensi data
+
+### Fitur Admin
+- ✅ Dashboard lengkap semua counter
+- ✅ **Export data transaksi ke CSV** dengan filter
+- ✅ **Manajemen User** (tambah, hapus, lihat)
 - ✅ Reset antrian
+- ✅ Pengaturan display (marquee, slide images)
+
+### Fitur CS & Teller
+- ✅ Dashboard khusus per counter
+- ✅ Hanya bisa panggil antrian sesuai role
+- ✅ Interface sederhana dan fokus
+
+### Sistem Role
+- ✅ **Admin:** Akses penuh, export data, manajemen user
+- ✅ **CS1/CS2:** Hanya counter CS masing-masing
+- ✅ **Teller1/Teller2:** Hanya counter Teller masing-masing
+- ✅ Authentication & Authorization
+- ✅ Session management
 
 ## 🚀 Cara Menjalankan
 
@@ -66,12 +86,24 @@ npm run docker:down    # Stop aplikasi
 
 Setelah aplikasi berjalan, buka browser:
 
-- **Admin Panel**: http://localhost:3000
+### Login & Dashboard
+- **Login**: http://localhost:3000/login
+- **Admin Dashboard**: http://localhost:3000/admin (setelah login sebagai admin)
+- **CS1 Counter**: http://localhost:3000/cs1 (setelah login sebagai cs1)
+- **CS2 Counter**: http://localhost:3000/cs2 (setelah login sebagai cs2)
+- **Teller1 Counter**: http://localhost:3000/teller1 (setelah login sebagai teller1)
+- **Teller2 Counter**: http://localhost:3000/teller2 (setelah login sebagai teller2)
+
+### Public Pages
+- **Ambil Nomor**: http://localhost:3000/ambil-nomor.html
 - **Display Screen**: http://localhost:3000/display
 
-Jika deploy di server:
-- **Admin Panel**: http://your-server-ip:3000
-- **Display Screen**: http://your-server-ip:3000/display
+### Default Login
+- **Admin**: username: `admin`, password: `admin123`
+- **CS**: username: `cs1` atau `cs2`, password: `cs123`
+- **Teller**: username: `teller1` atau `teller2`, password: `teller123`
+
+Jika deploy di server, ganti `localhost` dengan IP server Anda.
 
 ## 📁 Struktur Folder
 
@@ -93,132 +125,144 @@ Jika deploy di server:
 
 ## 🎯 Cara Penggunaan
 
-### Admin Panel
+### 1. Login
+1. Buka http://localhost:3000
+2. Masukkan username dan password
+3. Sistem akan redirect otomatis sesuai role
 
-1. **Tambah Antrian Baru**
-   - Masukkan nama (opsional)
-   - Klik "Ambil Nomor Antrian"
-   - Nomor akan muncul dengan format 001, 002, dst
+### 2. Admin Panel
 
-2. **Panggil Antrian**
-   - Klik "Panggil ke Loket 1" atau "Panggil ke Loket 2"
-   - Nomor akan muncul di display screen
+**Dashboard:**
+- Lihat semua counter (CS1, CS2, Teller1, Teller2)
+- Panggil antrian ke counter manapun
+- Panggil ulang nomor ke counter manapun
+- Reset semua antrian
 
-3. **Panggil Ulang Nomor**
-   - Masukkan nomor antrian (contoh: 003)
-   - Klik "Panggil Ulang ke Loket 1" atau "Panggil Ulang ke Loket 2"
-   - Nomor akan dipanggil ulang dengan label "PANGGILAN ULANG"
+**Export Data:**
+1. Scroll ke bagian "Export Data Transaksi"
+2. Pilih filter (tanggal, counter, tipe)
+3. Klik "Export ke CSV"
+4. File akan terdownload otomatis
 
-4. **Reset Antrian**
-   - Klik "Reset Antrian"
-   - Semua antrian dan counter akan direset
+**Manajemen User:**
+1. Klik menu "Manajemen User"
+2. Isi form untuk tambah user baru:
+   - Username (harus unik)
+   - Password
+   - Nama Lengkap (opsional)
+   - Role (admin/cs/teller)
+3. Klik "Tambah User"
+4. User baru bisa langsung login
 
-### Display Screen
+### 3. CS Counter (CS1/CS2)
+1. Login dengan username cs1 atau cs2
+2. Otomatis masuk ke counter masing-masing
+3. Klik "Panggil Antrian Berikutnya" untuk panggil antrian CS
+4. Masukkan nomor untuk panggil ulang
+5. Hanya bisa akses antrian CS
 
+### 4. Teller Counter (Teller1/Teller2)
+1. Login dengan username teller1 atau teller2
+2. Otomatis masuk ke counter masing-masing
+3. Klik "Panggil Antrian Berikutnya" untuk panggil antrian Teller
+4. Masukkan nomor untuk panggil ulang
+5. Hanya bisa akses antrian Teller
+
+### 5. Ambil Nomor (Public)
+1. Buka /ambil-nomor.html
+2. Pilih tipe layanan (CS atau Teller)
+3. Masukkan nama (opsional)
+4. Klik "Ambil Nomor"
+5. Nomor akan masuk ke antrian
+
+### 6. Display Screen (Public)
 - Tampilkan di TV/Monitor terpisah
-- Menampilkan nomor yang dipanggil dengan ukuran besar
-- Menampilkan loket tujuan
-- Menampilkan status kedua loket
-- Menampilkan preview antrian selanjutnya
-- Auto-refresh setiap 30 detik
+- Menampilkan nomor yang dipanggil real-time
+- Menampilkan counter tujuan
+- Menampilkan status semua counter
+- Auto-update via WebSocket
 
 ## 🔌 API Endpoints
 
-### POST /api/add-queue
-Tambah antrian baru
+### Authentication
 
-**Request Body:**
+**POST /api/login**
 ```json
 {
+  "username": "admin",
+  "password": "admin123"
+}
+```
+
+**POST /api/logout**
+
+**GET /api/user**
+
+### Queue Management
+
+**POST /api/add-queue**
+```json
+{
+  "type": "cs",  // atau "teller"
   "name": "John Doe"  // opsional
 }
 ```
 
-**Response:**
+**POST /api/next-queue**
 ```json
 {
-  "success": true,
-  "queueItem": {
-    "id": 1699084800000,
-    "number": "001",
-    "name": "John Doe",
-    "timestamp": "2024-11-04T02:00:00.000Z"
-  }
+  "counter": "cs1"  // cs1, cs2, t1, t2
 }
 ```
 
-### POST /api/next-queue
-Panggil antrian berikutnya
-
-**Request Body:**
+**POST /api/recall-number**
 ```json
 {
-  "counter": 1  // 1 atau 2
+  "number": "A003",
+  "counter": "cs1"
 }
 ```
 
-**Response:**
+**POST /api/reset-queue** (Admin only)
+
+**GET /api/queue-status**
+
+### User Management (Admin only)
+
+**GET /api/users**
+
+**POST /api/add-user**
 ```json
 {
-  "success": true,
-  "called": {
-    "number": "001",
-    "name": "John Doe"
-  },
-  "counter": 1
+  "username": "cs3",
+  "password": "password123",
+  "full_name": "Customer Service 3",
+  "role": "cs"
 }
 ```
 
-### POST /api/recall-number
-Panggil ulang nomor tertentu
-
-**Request Body:**
+**POST /api/delete-user**
 ```json
 {
-  "number": "003",
-  "counter": 1
+  "userId": 5
 }
 ```
 
-**Response:**
+### Export Data (Admin only)
+
+**GET /api/export-transactions?startDate=2024-01-01&endDate=2024-12-31&counter=cs1&type=cs**
+
+**GET /api/transactions?startDate=2024-01-01&endDate=2024-12-31**
+
+### Display Settings (Admin only)
+
+**GET /api/display-settings**
+
+**POST /api/display-settings**
 ```json
 {
-  "success": true,
-  "recalled": "003",
-  "counter": 1
-}
-```
-
-### POST /api/reset-queue
-Reset semua antrian
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Antrian berhasil direset"
-}
-```
-
-### GET /api/queue-status
-Status antrian saat ini
-
-**Response:**
-```json
-{
-  "queue": [
-    {
-      "id": 1699084800000,
-      "number": "002",
-      "name": "Jane Doe",
-      "timestamp": "2024-11-04T02:01:00.000Z"
-    }
-  ],
-  "counters": {
-    "1": { "current": "001", "name": "Loket 1" },
-    "2": { "current": "000", "name": "Loket 2" }
-  },
-  "total": 1
+  "marquee_text": "Selamat Datang",
+  "slide_images": []
 }
 ```
 

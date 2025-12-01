@@ -1,0 +1,251 @@
+body {
+    margin: 0;
+    font-family: 'Arial', sans-serif;
+    background: url('assets/bg1.png') no-repeat center center fixed;
+    background-size: cover;
+    overflow: hidden;
+}
+
+.container {
+    display: flex;
+    height: calc(100vh - 70px);
+    position: relative;
+    z-index: 1;
+}
+
+.left-section {
+    width: 40%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+}
+
+.slideshow-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+}
+
+.slideshow-container img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    object-position: left bottom;
+}
+
+.right-section-wrapper {
+    width: 60%;
+    padding: 20px 30px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.header-logo {
+    text-align: right;
+    margin-bottom: 15px;
+    flex-shrink: 0;
+}
+
+.header-logo img {
+    height: 70px;
+}
+
+.right-section {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    flex: 1;
+    overflow: hidden;
+    align-items: center;
+    justify-content: center;
+}
+
+.queue-button {
+    background: #ffffff;
+    border: none;
+    border-radius: 20px;
+    padding: 30px 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+    width: 80%;
+    height: 35%;
+    position: relative;
+    overflow: hidden;
+}
+
+.queue-button::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    right: -10px;
+    width: 200px;
+    height: 200px;
+    background: url('assets/line-art.png') no-repeat bottom right;
+    background-size: contain;
+    opacity: 1;
+    pointer-events: none;
+}
+
+.queue-button:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+}
+
+.queue-button:active {
+    transform: translateY(-2px);
+}
+
+.service-label {
+    font-size: 48px;
+    font-weight: bold;
+    color: #0057d9;
+    margin: 0;
+}
+
+.cs-button {
+    background: #ffffff;
+}
+
+.teller-button {
+    background: #ffffff;
+}
+
+.footer {
+    height: 70px;
+    display: flex;
+    align-items: center;
+    padding: 0;
+    color: white;
+    position: relative;
+    overflow: visible;
+    z-index: 2;
+}
+
+.datetime-box {
+    position: absolute;
+    left: 10px;
+    top: -30px;
+    background: #ff0000;
+    padding: 12px 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 280px;
+}
+
+.date {
+    font-size: 16px;
+    font-weight: 500;
+    text-align: center;
+}
+
+.clock {
+    font-size: 36px;
+    font-weight: bold;
+    text-align: center;
+}
+
+.marquee {
+    flex: 1;
+    overflow: hidden;
+    white-space: nowrap;
+    background: #0066ff;
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+
+.marquee span {
+    display: inline-block;
+    padding-left: 100%;
+    animation: marquee 20s linear infinite;
+    font-size: 22px;
+    font-weight: 500;
+}
+
+@keyframes marquee {
+    0% { transform: translate(0, 0); }
+    100% { transform: translate(-100%, 0); }
+}
+
+.footer-right {
+    display: flex;
+    align-items: center;
+    background: #0066ff;
+    height: 100%;
+    padding: 0 30px;
+}
+
+.footer-logo {
+    height: 45px;
+    filter: brightness(0) invert(1);
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.8);
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.show {
+    display: flex;
+    animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-content {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    padding: 60px 80px;
+    border-radius: 30px;
+    text-align: center;
+    animation: slideUp 0.5s;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-content p {
+    font-size: 24px;
+    color: white;
+    font-weight: 500;
+    margin: 0;
+}
+
+.modal-content h2 {
+    color: white;
+    font-size: 120px;
+    margin: 20px 0;
+    text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
+}
+
+.cs-button {
+    background: #ffffff;
+}
+
+.teller-button {
+    background: #ffffff;
+}

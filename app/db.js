@@ -20,8 +20,15 @@ async function initDB() {
                 password VARCHAR(255) NOT NULL,
                 role VARCHAR(20) NOT NULL,
                 full_name VARCHAR(100),
+                counter_access VARCHAR(10),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
+        `);
+        
+        // Add counter_access column if not exists
+        await client.query(`
+            ALTER TABLE users 
+            ADD COLUMN IF NOT EXISTS counter_access VARCHAR(10)
         `);
 
         // Queue transactions table
@@ -46,35 +53,50 @@ async function initDB() {
             CREATE TABLE IF NOT EXISTS display_settings (
                 id SERIAL PRIMARY KEY,
                 marquee_text TEXT DEFAULT 'Selamat Datang di Sistem Antrian',
-                slide_images TEXT[] DEFAULT '{}',
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_by INTEGER REFERENCES users(id)
+            )
+        `);
+        
+        // Image slides table
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS image_slides (
+                id SERIAL PRIMARY KEY,
+                image_data TEXT NOT NULL,
+                display_order INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_by INTEGER REFERENCES users(id)
             )
         `);
 
         // Insert default display settings
         await client.query(`
-            INSERT INTO display_settings (marquee_text, slide_images)
-            SELECT 'Selamat Datang di Sistem Antrian', ARRAY[]::TEXT[]
+            INSERT INTO display_settings (marquee_text)
+            SELECT 'Selamat Datang di Sistem Antrian'
             WHERE NOT EXISTS (SELECT 1 FROM display_settings LIMIT 1)
         `);
 
         // Insert default users if not exists
         const bcrypt = require('bcrypt');
         const defaultUsers = [
-            { username: 'admin', password: await bcrypt.hash('admin123', 10), role: 'admin' },
-            { username: 'cs1', password: await bcrypt.hash('cs123', 10), role: 'cs' },
-            { username: 'cs2', password: await bcrypt.hash('cs123', 10), role: 'cs' },
-            { username: 'teller1', password: await bcrypt.hash('teller123', 10), role: 'teller' },
-            { username: 'teller2', password: await bcrypt.hash('teller123', 10), role: 'teller' }
+            { username: 'admin', password: await bcrypt.hash('admin123', 10), role: 'admin', counter_access: null },
+            { username: 'cs1', password: await bcrypt.hash('cs123', 10), role: 'cs', counter_access: 'cs1' },
+            { username: 'cs2', password: await bcrypt.hash('cs123', 10), role: 'cs', counter_access: 'cs2' },
+            { username: 'teller1', password: await bcrypt.hash('teller123', 10), role: 'teller', counter_access: 't1' },
+            { username: 'teller2', password: await bcrypt.hash('teller123', 10), role: 'teller', counter_access: 't2' }
         ];
 
         for (const user of defaultUsers) {
             await client.query(
-                'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) ON CONFLICT (username) DO NOTHING',
-                [user.username, user.password, user.role]
+                'INSERT INTO users (username, password, role, counter_access) VALUES ($1, $2, $3, $4) ON CONFLICT (username) DO NOTHING',
+                [user.username, user.password, user.role, user.counter_access]
             );
         }
+        
+        await client.query(`UPDATE users SET counter_access = 'cs1' WHERE username = 'cs1' AND counter_access IS NULL`);
+        await client.query(`UPDATE users SET counter_access = 'cs2' WHERE username = 'cs2' AND counter_access IS NULL`);
+        await client.query(`UPDATE users SET counter_access = 't1' WHERE username = 'teller1' AND counter_access IS NULL`);
+        await client.query(`UPDATE users SET counter_access = 't2' WHERE username = 'teller2' AND counter_access IS NULL`);
 
         console.log('Database initialized successfully');
     } catch (error) {

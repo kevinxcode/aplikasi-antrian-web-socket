@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manajemen User</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #333; margin-bottom: 30px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .section { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        h3 { margin-bottom: 15px; color: #333; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; }
+        button { padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; color: white; }
+        button:hover { opacity: 0.9; }
+        .btn-primary { background: #007bff; }
+        .btn-danger { background: #dc3545; }
+        .btn-secondary { background: #6c757d; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #007bff; color: white; }
+        tr:hover { background: #f8f9fa; }
+        .badge { padding: 5px 10px; border-radius: 5px; font-size: 12px; font-weight: bold; }
+        .badge-admin { background: #dc3545; color: white; }
+        .badge-cs { background: #28a745; color: white; }
+        .badge-teller { background: #007bff; color: white; }
+        .btn-warning { background: #ffc107; color: #000; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+        .modal-content { background: white; margin: 5% auto; padding: 30px; border-radius: 10px; width: 90%; max-width: 500px; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .close { font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close:hover { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 style="margin: 0;">Manajemen User</h1>
+        </div>
+        
+        <div class="section">
+            <h3>Tambah User Baru</h3>
+            <form id="addUserForm">
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                    <div class="form-group">
+                        <label for="username">Username:</label>
+                        <input type="text" id="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password:</label>
+                        <input type="password" id="password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="full_name">Nama Lengkap:</label>
+                        <input type="text" id="full_name">
+                    </div>
+                    <div class="form-group">
+                        <label for="role">Role:</label>
+                        <select id="role" required>
+                            <option value="">Pilih Role</option>
+                            <option value="admin">Admin</option>
+                            <option value="cs">CS</option>
+                            <option value="teller">Teller</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="counter_access">Akses Counter:</label>
+                        <select id="counter_access">
+                            <option value="">Tidak Ada (Admin)</option>
+                            <option value="cs1">CS 1</option>
+                            <option value="cs2">CS 2</option>
+                            <option value="t1">Teller 1</option>
+                            <option value="t2">Teller 2</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary">Tambah User</button>
+            </form>
+        </div>
+        
+        <div class="section">
+            <h3>Daftar User</h3>
+            <table id="usersTable">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Nama Lengkap</th>
+                        <th>Role</th>
+                        <th>Dibuat</th>
+                        <th style="width: 150px;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="usersBody">
+                    <tr>
+                        <td colspan="5" style="text-align: center;">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal Edit User -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit User</h3>
+                <span class="close" onclick="closeEditModal()">&times;</span>
+            </div>
+            <form id="editUserForm">
+                <input type="hidden" id="editUserId">
+                <div class="form-group">
+                    <label for="editUsername">Username:</label>
+                    <input type="text" id="editUsername" required>
+                </div>
+                <div class="form-group">
+                    <label for="editPassword">Password Baru (kosongkan jika tidak diubah):</label>
+                    <input type="password" id="editPassword">
+                </div>
+                <div class="form-group">
+                    <label for="editFullName">Nama Lengkap:</label>
+                    <input type="text" id="editFullName">
+                </div>
+                <div class="form-group">
+                    <label for="editRole">Role:</label>
+                    <select id="editRole" required>
+                        <option value="admin">Admin</option>
+                        <option value="cs">CS</option>
+                        <option value="teller">Teller</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editCounterAccess">Akses Counter:</label>
+                    <select id="editCounterAccess">
+                        <option value="">Tidak Ada (Admin)</option>
+                        <option value="cs1">CS 1</option>
+                        <option value="cs2">CS 2</option>
+                        <option value="t1">Teller 1</option>
+                        <option value="t2">Teller 2</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary">Update User</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        async function logout() {
+            await fetch('/api/logout', { method: 'POST' });
+            window.location.href = '/login.html';
+        }
+        
+        async function loadUsers() {
+            try {
+                const response = await fetch('/api/users');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const tbody = document.getElementById('usersBody');
+                    
+                    if (result.users.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Tidak ada user</td></tr>';
+                        return;
+                    }
+                    
+                    tbody.innerHTML = result.users.map(user => {
+                        const badgeClass = user.role === 'admin' ? 'badge-admin' : 
+                                          user.role === 'cs' ? 'badge-cs' : 'badge-teller';
+                        return `
+                            <tr>
+                                <td>${user.username}</td>
+                                <td>${user.full_name || '-'}</td>
+                                <td><span class="badge ${badgeClass}">${user.role.toUpperCase()}</span></td>
+                                <td>${new Date(user.created_at).toLocaleDateString('id-ID')}</td>
+                                <td>
+                                    <button class="btn-warning" onclick='editUser(${JSON.stringify(user)})' style="padding: 5px 10px; font-size: 14px; margin-right: 5px;">
+                                        Edit
+                                    </button>
+                                    <button class="btn-danger" onclick="deleteUser(${user.id}, '${user.username}')" style="padding: 5px 10px; font-size: 14px;">
+                                        Hapus
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            } catch (error) {
+                console.error('Load users error:', error);
+            }
+        }
+        
+        document.getElementById('addUserForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const full_name = document.getElementById('full_name').value;
+            const role = document.getElementById('role').value;
+            const counter_access = document.getElementById('counter_access').value || null;
+            
+            try {
+                const response = await fetch('/api/add-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, full_name, role, counter_access })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('User berhasil ditambahkan');
+                    document.getElementById('addUserForm').reset();
+                    loadUsers();
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                alert('Gagal menambahkan user');
+            }
+        });
+        
+        async function deleteUser(userId, username) {
+            if (!confirm(`Yakin ingin menghapus user "${username}"?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/delete-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('User berhasil dihapus');
+                    loadUsers();
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                alert('Gagal menghapus user');
+            }
+        }
+        
+        function editUser(user) {
+            document.getElementById('editUserId').value = user.id;
+            document.getElementById('editUsername').value = user.username;
+            document.getElementById('editFullName').value = user.full_name || '';
+            document.getElementById('editRole').value = user.role;
+            document.getElementById('editCounterAccess').value = user.counter_access || '';
+            document.getElementById('editPassword').value = '';
+            document.getElementById('editModal').style.display = 'block';
+        }
+        
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+        
+        document.getElementById('editUserForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const userId = document.getElementById('editUserId').value;
+            const username = document.getElementById('editUsername').value;
+            const password = document.getElementById('editPassword').value;
+            const full_name = document.getElementById('editFullName').value;
+            const role = document.getElementById('editRole').value;
+            const counter_access = document.getElementById('editCounterAccess').value || null;
+            
+            try {
+                const response = await fetch('/api/update-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, username, password, full_name, role, counter_access })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('User berhasil diupdate');
+                    closeEditModal();
+                    loadUsers();
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                alert('Gagal update user');
+            }
+        });
+        
+        window.onclick = function(event) {
+            const modal = document.getElementById('editModal');
+            if (event.target == modal) {
+                closeEditModal();
+            }
+        }
+        
+        // Load users on page load
+        loadUsers();
+    </script>
+</body>
+</html>

@@ -67,17 +67,13 @@ fetchQueueData();
 // Fetch data setiap 3 detik sebagai fallback
 setInterval(fetchQueueData, 3000);
 
-// Load display settings
-let slideImages = [];
-let currentSlide = 0;
-
+// Load display settings (marquee only)
 async function loadDisplaySettings() {
     try {
         const response = await fetch('/api/display-settings');
         const result = await response.json();
         
         if (result.success && result.settings) {
-            // Update marquee text
             if (result.settings.marquee_text) {
                 document.getElementById('marqueeText').textContent = result.settings.marquee_text;
             }
@@ -87,68 +83,14 @@ async function loadDisplaySettings() {
     }
 }
 
-async function loadSlides() {
-    try {
-        const response = await fetch('/api/image-slides');
-        const result = await response.json();
-        
-        if (result.success && result.slides && result.slides.length > 0) {
-            slideImages = result.slides.map(slide => slide.image_data);
-            updateSlideshow();
-        }
-    } catch (error) {
-        console.error('Error loading slides:', error);
-    }
-}
-
-function updateSlideshow() {
-    const container = document.querySelector('.slideshow-container');
-    container.innerHTML = '';
-    
-    slideImages.forEach((imgSrc, index) => {
-        const img = document.createElement('img');
-        img.src = imgSrc;
-        img.className = index === 0 ? 'slide active' : 'slide';
-        img.alt = `Slide ${index + 1}`;
-        container.appendChild(img);
-    });
-    
-    currentSlide = 0;
-}
-
-function showSlide(index) {
-    const slides = document.querySelectorAll('.slide');
-    slides.forEach(slide => slide.classList.remove('active'));
-    if (slides[index]) {
-        slides[index].classList.add('active');
-    }
-}
-
-function nextSlide() {
-    const slides = document.querySelectorAll('.slide');
-    if (slides.length > 0) {
-        currentSlide = (currentSlide + 1) % slides.length;
-        showSlide(currentSlide);
-    }
-}
-
 // Load settings pertama kali
 loadDisplaySettings();
-loadSlides();
-
-// Ganti slide setiap 5 detik
-setInterval(nextSlide, 5000);
 
 // Listen for settings updates
 socket.on('displaySettingsUpdated', (data) => {
     if (data.marquee_text) {
         document.getElementById('marqueeText').textContent = data.marquee_text;
     }
-});
-
-// Listen for slides updates
-socket.on('slidesUpdated', () => {
-    loadSlides();
 });
 
 // Update waktu real-time

@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Display Antrian</title>
+    <title>Display Slide Antrian</title>
     <link rel="stylesheet" href="display.css">
 </head>
 <body>
     <div class="container">
         <div class="left-section">
-            <img src="assets/bg-left.png" alt="Background" style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; object-position: center bottom;">
+            <div class="slideshow-container">
+                <img src="" class="slide active" alt="Slide 1">
+            </div>
         </div>
         
         <div class="right-section-wrapper">
@@ -69,6 +71,6 @@
     </div>
     
     <script src="/socket.io/socket.io.js"></script>
-    <script src="display-static.js"></script>
+    <script src="display.js"></script>
 </body>
 </html>

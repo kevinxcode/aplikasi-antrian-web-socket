@@ -31,13 +31,7 @@
 </head>
 <body>
     <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h1 style="margin: 0;">Pengaturan Display</h1>
-            <div>
-                <a href="/admin"><button class="btn-secondary">Kembali ke Admin</button></a>
-                <button class="btn-danger" onclick="logout()">Logout</button>
-            </div>
-        </div>
+        <h1>Pengaturan Display</h1>
 
         <div class="section">
             <h3>Teks Marquee</h3>
@@ -46,19 +40,6 @@
                 <textarea id="marqueeText" placeholder="Masukkan teks yang akan berjalan di display..."></textarea>
             </div>
             <button class="btn-success" onclick="saveMarquee()">Simpan Teks Marquee</button>
-        </div>
-
-        <div class="section">
-            <h3>Slide Gambar</h3>
-            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
-                <p>📁 Klik untuk upload gambar</p>
-                <small>Format: JPG, PNG (Max 2MB)</small>
-            </div>
-            <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="uploadImage(event)">
-            
-            <div class="image-grid" id="imageGrid">
-                <p>Belum ada gambar</p>
-            </div>
         </div>
     </div>
 
@@ -89,27 +70,10 @@
                 if (result.success) {
                     currentSettings = result.settings;
                     document.getElementById('marqueeText').value = currentSettings.marquee_text || '';
-                    displayImages(currentSettings.slide_images || []);
                 }
             } catch (error) {
                 console.error('Error loading settings:', error);
             }
-        }
-
-        function displayImages(images) {
-            const grid = document.getElementById('imageGrid');
-            
-            if (images.length === 0) {
-                grid.innerHTML = '<p>Belum ada gambar</p>';
-                return;
-            }
-            
-            grid.innerHTML = images.map((img, index) => `
-                <div class="image-item">
-                    <img src="${img}" alt="Slide ${index + 1}">
-                    <button class="btn-danger" onclick="deleteImage(${index})">Hapus</button>
-                </div>
-            `).join('');
         }
 
         async function saveMarquee() {
@@ -124,10 +88,7 @@
                 const response = await fetch('/api/display-settings', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        marquee_text: marqueeText,
-                        slide_images: currentSettings.slide_images || []
-                    })
+                    body: JSON.stringify({ marquee_text: marqueeText })
                 });
                 
                 const result = await response.json();
@@ -137,68 +98,6 @@
                     loadSettings();
                 } else {
                     alert(result.message || 'Gagal menyimpan');
-                }
-            } catch (error) {
-                alert('Error: ' + error.message);
-            }
-        }
-
-        async function uploadImage(event) {
-            const file = event.target.files[0];
-            
-            if (!file) return;
-            
-            if (file.size > 2 * 1024 * 1024) {
-                alert('Ukuran file maksimal 2MB');
-                return;
-            }
-            
-            const reader = new FileReader();
-            reader.onload = async function(e) {
-                try {
-                    const response = await fetch('/api/upload-image', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            image_data: e.target.result,
-                            filename: file.name
-                        })
-                    });
-                    
-                    const result = await response.json();
-                    
-                    if (result.success) {
-                        alert('Gambar berhasil diupload');
-                        loadSettings();
-                    } else {
-                        alert(result.message || 'Gagal upload gambar');
-                    }
-                } catch (error) {
-                    alert('Error: ' + error.message);
-                }
-            };
-            
-            reader.readAsDataURL(file);
-            event.target.value = '';
-        }
-
-        async function deleteImage(index) {
-            if (!confirm('Yakin ingin menghapus gambar ini?')) return;
-            
-            try {
-                const response = await fetch('/api/delete-image', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ index })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    alert('Gambar berhasil dihapus');
-                    loadSettings();
-                } else {
-                    alert(result.message || 'Gagal hapus gambar');
                 }
             } catch (error) {
                 alert('Error: ' + error.message);

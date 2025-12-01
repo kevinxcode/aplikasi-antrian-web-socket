@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Counter - Pemanggilan Antrian</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 10px; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #333; margin-bottom: 30px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        .counter-badge { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px 20px; border-radius: 10px; font-size: 18px; font-weight: bold; flex: 1; text-align: center; }
+        .current-number { text-align: center; background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .current-label { font-size: 14px; color: #666; margin-bottom: 5px; }
+        .number-display { font-size: 48px; font-weight: bold; color: #007bff; }
+        .queue-info { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+        .info-card { background: #e9ecef; padding: 15px; border-radius: 8px; text-align: center; }
+        .info-number { font-size: 28px; font-weight: bold; color: #333; }
+        .info-label { font-size: 12px; color: #666; margin-top: 5px; }
+        .action-buttons { display: grid; gap: 10px; margin-bottom: 20px; }
+        button { padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; color: white; transition: all 0.3s; touch-action: manipulation; }
+        button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .btn-warning { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .btn-danger { background: #dc3545; }
+        .recall-section { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .recall-section h3 { font-size: 16px; }
+        input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; margin-bottom: 10px; -webkit-appearance: none; }
+        .queue-list { background: #f8f9fa; padding: 20px; border-radius: 8px; max-height: 300px; overflow-y: auto; }
+        .queue-item { display: flex; justify-content: space-between; padding: 10px; background: white; margin-bottom: 8px; border-radius: 5px; border-left: 4px solid #007bff; align-items: center; }
+        .queue-item.clickable { cursor: pointer; transition: all 0.3s; -webkit-tap-highlight-color: rgba(0,0,0,0.1); }
+        .queue-item.clickable:active { background: #e3f2fd; transform: scale(0.98); }
+        .queue-number { font-weight: bold; color: #007bff; font-size: 18px; }
+        .queue-item small { font-size: 11px; }
+        
+        @media (max-width: 768px) {
+            body { padding: 5px; }
+            .container { padding: 10px; border-radius: 5px; }
+            .counter-badge { font-size: 16px; padding: 8px 15px; }
+            .number-display { font-size: 36px; }
+            .current-number { padding: 15px; }
+            .info-number { font-size: 24px; }
+            .info-label { font-size: 11px; }
+            button { padding: 12px; font-size: 14px; }
+            .tab { padding: 8px 12px; font-size: 12px; }
+            .queue-number { font-size: 16px; }
+            .btn-danger { padding: 8px 15px !important; font-size: 13px !important; }
+        }
+        .tabs { display: flex; gap: 5px; margin-bottom: 15px; border-bottom: 2px solid #ddd; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .tab { padding: 10px 15px; cursor: pointer; border: none; background: none; font-size: 13px; font-weight: 600; color: #666; border-bottom: 3px solid transparent; transition: all 0.3s; white-space: nowrap; flex-shrink: 0; }
+        .tab.active { color: #667eea; border-bottom-color: #667eea; }
+        .tab:hover { color: #667eea; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="counter-badge" id="counterName">Loading...</div>
+            <button class="btn-danger" onclick="logout()" style="padding: 10px 20px; font-size: 14px;">Logout</button>
+        </div>
+        
+        <div class="current-number">
+            <div class="current-label">Nomor Saat Ini</div>
+            <div class="number-display" id="currentNumber">000</div>
+        </div>
+        
+        <div class="queue-info">
+            <div class="info-card">
+                <div class="info-number" id="queueCount">0</div>
+                <div class="info-label">Antrian Menunggu</div>
+            </div>
+            <div class="info-card">
+                <div class="info-number" id="nextNumber">-</div>
+                <div class="info-label">Nomor Berikutnya</div>
+            </div>
+        </div>
+        
+        <div class="action-buttons">
+            <button class="btn-primary" onclick="callNext()">
+                📢 Panggil Antrian Berikutnya
+            </button>
+        </div>
+        
+        <div class="recall-section">
+            <h3 style="margin-bottom: 15px;">Panggil Ulang Nomor</h3>
+            <input type="text" id="recallNumber" placeholder="Klik nomor di list 'Sudah Dipanggil' untuk panggil ulang" maxlength="4" readonly>
+            <button class="btn-warning" onclick="recallNumber()" style="width: 100%;">
+                🔁 Panggil Ulang
+            </button>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('waiting')">📋 Antrian Menunggu</button>
+            <button class="tab" onclick="switchTab('called')">✅ Sudah Dipanggil (Counter Ini)</button>
+            <button class="tab" onclick="switchTab('calledCS')">🟢 Sudah Dipanggil CS</button>
+            <button class="tab" onclick="switchTab('calledTeller')">🔵 Sudah Dipanggil Teller</button>
+        </div>
+        
+        <div id="waiting" class="tab-content active">
+            <div class="queue-list">
+                <div id="queueList">
+                    <p style="text-align: center; color: #999;">Tidak ada antrian</p>
+                </div>
+            </div>
+        </div>
+        
+        <div id="called" class="tab-content">
+            <div class="queue-list">
+                <div id="calledList">
+                    <p style="text-align: center; color: #999;">Belum ada yang dipanggil</p>
+                </div>
+            </div>
+        </div>
+        
+        <div id="calledCS" class="tab-content">
+            <div class="queue-list">
+                <div id="calledCSList">
+                    <p style="text-align: center; color: #999;">Belum ada yang dipanggil</p>
+                </div>
+            </div>
+        </div>
+        
+        <div id="calledTeller" class="tab-content">
+            <div class="queue-list">
+                <div id="calledTellerList">
+                    <p style="text-align: center; color: #999;">Belum ada yang dipanggil</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        let myCounter = '';
+        let myType = '';
+        
+        const path = window.location.pathname;
+        if (path.includes('cs1')) {
+            myCounter = 'cs1';
+            myType = 'cs';
+        } else if (path.includes('cs2')) {
+            myCounter = 'cs2';
+            myType = 'cs';
+        } else if (path.includes('teller1')) {
+            myCounter = 't1';
+            myType = 'teller';
+        } else if (path.includes('teller2')) {
+            myCounter = 't2';
+            myType = 'teller';
+        }
+        
+        fetch('/api/user')
+            .then(res => res.json())
+            .then(data => {
+                if (data.user) {
+                    const counterNames = {
+                        'cs1': 'CS 1',
+                        'cs2': 'CS 2',
+                        't1': 'Teller 1',
+                        't2': 'Teller 2'
+                    };
+                    const displayName = data.user.full_name || data.user.username;
+                    document.getElementById('counterName').textContent = `${counterNames[myCounter]} - ${displayName}`;
+                } else {
+                    window.location.href = '/login.html';
+                }
+            })
+            .catch(() => {
+                window.location.href = '/login.html';
+            });
+        
+        async function logout() {
+            await fetch('/api/logout', { method: 'POST' });
+            window.location.href = '/login.html';
+        }
+        
+        const socket = io();
+        
+        socket.on('queueUpdated', (data) => {
+            updateDisplay(data);
+        });
+        
+        function updateDisplay(data) {
+            if (data.counters && data.counters[myCounter]) {
+                document.getElementById('currentNumber').textContent = data.counters[myCounter].current;
+            }
+            
+            const queue = myType === 'cs' ? data.queueCS : data.queueTeller;
+            document.getElementById('queueCount').textContent = queue.length;
+            
+            if (queue.length > 0) {
+                document.getElementById('nextNumber').textContent = queue[0].number;
+            } else {
+                document.getElementById('nextNumber').textContent = '-';
+            }
+            
+            const queueList = document.getElementById('queueList');
+            if (queue.length === 0) {
+                queueList.innerHTML = '<p style="text-align: center; color: #999;">Tidak ada antrian</p>';
+            } else {
+                queueList.innerHTML = queue.map((item, index) => `
+                    <div class="queue-item">
+                        <div>
+                            <span class="queue-number">${item.number}</span>
+                            <span> - ${item.name}</span>
+                        </div>
+                        <small>${new Date(item.timestamp).toLocaleTimeString()}</small>
+                    </div>
+                `).join('');
+            }
+            loadCalledQueue();
+            loadCalledByType();
+        }
+        
+        loadCalledQueue();
+        loadCalledByType();
+        
+        async function loadCalledQueue() {
+            try {
+                const today = new Date().toISOString().split('T')[0];
+                const response = await fetch(`/api/transactions?startDate=${today}&endDate=${today}`);
+                const result = await response.json();
+                
+                if (result.success && result.transactions.length > 0) {
+                    const filtered = result.transactions.filter(t => t.counter === myCounter);
+                    const calledList = document.getElementById('calledList');
+                    
+                    if (filtered.length === 0) {
+                        calledList.innerHTML = '<p style="text-align: center; color: #999;">Belum ada yang dipanggil</p>';
+                    } else {
+                        calledList.innerHTML = filtered.map(item => `
+                            <div class="queue-item clickable" style="border-left-color: #28a745;" onclick="selectNumber('${item.queue_number}')">
+                                <div>
+                                    <span class="queue-number" style="color: #28a745;">${item.queue_number}</span>
+                                    <span> - ${item.customer_name || '-'}</span>
+                                </div>
+                                <small>${item.called_at ? new Date(item.called_at).toLocaleTimeString() : '-'}</small>
+                            </div>
+                        `).join('');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading called queue:', error);
+            }
+        }
+        
+        async function loadCalledByType() {
+            try {
+                const today = new Date().toISOString().split('T')[0];
+                const response = await fetch(`/api/transactions?startDate=${today}&endDate=${today}`);
+                const result = await response.json();
+                
+                if (result.success && result.transactions.length > 0) {
+                    // Filter CS
+                    const csFiltered = result.transactions.filter(t => t.queue_type === 'cs');
+                    const calledCSList = document.getElementById('calledCSList');
+                    
+                    if (csFiltered.length === 0) {
+                        calledCSList.innerHTML = '<p style="text-align: center; color: #999;">Belum ada yang dipanggil</p>';
+                    } else {
+                        calledCSList.innerHTML = csFiltered.map(item => `
+                            <div class="queue-item clickable" style="border-left-color: #28a745;" onclick="selectNumber('${item.queue_number}')">
+                                <div>
+                                    <span class="queue-number" style="color: #28a745;">${item.queue_number}</span>
+                                    <span> - ${item.customer_name || '-'}</span>
+                                    <span style="margin-left: 10px; color: #666;">[${item.counter?.toUpperCase() || '-'}]</span>
+                                </div>
+                                <small>${item.called_at ? new Date(item.called_at).toLocaleTimeString() : '-'}</small>
+                            </div>
+                        `).join('');
+                    }
+                    
+                    // Filter Teller
+                    const tellerFiltered = result.transactions.filter(t => t.queue_type === 'teller');
+                    const calledTellerList = document.getElementById('calledTellerList');
+                    
+                    if (tellerFiltered.length === 0) {
+                        calledTellerList.innerHTML = '<p style="text-align: center; color: #999;">Belum ada yang dipanggil</p>';
+                    } else {
+                        calledTellerList.innerHTML = tellerFiltered.map(item => `
+                            <div class="queue-item clickable" style="border-left-color: #28a745;" onclick="selectNumber('${item.queue_number}')">
+                                <div>
+                                    <span class="queue-number" style="color: #28a745;">${item.queue_number}</span>
+                                    <span> - ${item.customer_name || '-'}</span>
+                                    <span style="margin-left: 10px; color: #666;">[${item.counter?.toUpperCase() || '-'}]</span>
+                                </div>
+                                <small>${item.called_at ? new Date(item.called_at).toLocaleTimeString() : '-'}</small>
+                            </div>
+                        `).join('');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading called by type:', error);
+            }
+        }
+        
+        async function callNext() {
+            try {
+                const response = await fetch('/api/next-queue', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ counter: myCounter })
+                });
+                const result = await response.json();
+                
+                if (!result.success) {
+                    alert(result.message);
+                }
+            } catch (error) {
+                alert('Gagal memanggil antrian');
+            }
+        }
+        
+        async function recallNumber() {
+            const number = document.getElementById('recallNumber').value.trim().toUpperCase();
+            
+            if (!number) {
+                alert('Masukkan nomor antrian');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/recall-number', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ number: number, counter: myCounter })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('recallNumber').value = '';
+                } else {
+                    alert(result.message || 'Gagal memanggil ulang nomor');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+        
+        function selectNumber(number) {
+            document.getElementById('recallNumber').value = number;
+            document.getElementById('recallNumber').style.background = '#fff3cd';
+            setTimeout(() => {
+                document.getElementById('recallNumber').style.background = 'white';
+            }, 500);
+        }
+    </script>
+</body>
+</html>
