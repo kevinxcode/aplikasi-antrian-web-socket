@@ -208,15 +208,33 @@
             if (queue.length === 0) {
                 queueList.innerHTML = '<p style="text-align: center; color: #999;">Tidak ada antrian</p>';
             } else {
-                queueList.innerHTML = queue.map((item, index) => `
+                const now = new Date();
+                const avgTime = data.avgServiceTime?.[myType] || 10;
+                
+                queueList.innerHTML = queue.map((item, index) => {
+                    const waitingSince = Math.round((now - new Date(item.timestamp)) / 60000);
+                    const estimatedWait = (index + 1) * avgTime;
+                    const totalWait = waitingSince + estimatedWait;
+                    
+                    let timeColor = '#ff6b6b';
+                    let timeIcon = '⏱️';
+                    if (totalWait > 30) {
+                        timeColor = '#e74c3c';
+                        timeIcon = '⚠️';
+                    } else if (totalWait > 20) {
+                        timeColor = '#f39c12';
+                    }
+                    
+                    return `
                     <div class="queue-item">
                         <div>
                             <span class="queue-number">${item.number}</span>
                             <span> - ${item.name}</span>
+                            <br><span style="color: ${timeColor}; font-size: 11px; font-weight: ${totalWait > 30 ? 'bold' : 'normal'};">${timeIcon} ~${totalWait} menit (tunggu: ${waitingSince}m)</span>
                         </div>
                         <small>${new Date(item.timestamp).toLocaleTimeString()}</small>
                     </div>
-                `).join('');
+                `}).join('');
             }
             loadCalledQueue();
             loadCalledByType();
@@ -238,15 +256,32 @@
                     if (filtered.length === 0) {
                         calledList.innerHTML = '<p style="text-align: center; color: #999;">Belum ada yang dipanggil</p>';
                     } else {
-                        calledList.innerHTML = filtered.map(item => `
+                        calledList.innerHTML = filtered.map((item, index) => {
+                            let serviceTime = null;
+                            let timeColor = '#2980b9';
+                            let timeIcon = '⏱️';
+                            
+                            if (index < filtered.length - 1 && filtered[index + 1].called_at && item.called_at) {
+                                serviceTime = Math.round((new Date(item.called_at) - new Date(filtered[index + 1].called_at)) / 60000);
+                                
+                                if (serviceTime > 15) {
+                                    timeColor = '#e74c3c';
+                                    timeIcon = '⚠️';
+                                } else if (serviceTime > 10) {
+                                    timeColor = '#f39c12';
+                                }
+                            }
+                            
+                            return `
                             <div class="queue-item clickable" style="border-left-color: #28a745;" onclick="selectNumber('${item.queue_number}')">
                                 <div>
                                     <span class="queue-number" style="color: #28a745;">${item.queue_number}</span>
                                     <span> - ${item.customer_name || '-'}</span>
+                                    ${serviceTime && serviceTime > 0 ? `<br><span style="color: ${timeColor}; font-size: 11px; font-weight: ${serviceTime > 15 ? 'bold' : 'normal'};">${timeIcon} ${serviceTime} menit</span>` : ''}
                                 </div>
                                 <small>${item.called_at ? new Date(item.called_at).toLocaleTimeString() : '-'}</small>
                             </div>
-                        `).join('');
+                        `}).join('');
                     }
                 }
             } catch (error) {
@@ -268,16 +303,33 @@
                     if (csFiltered.length === 0) {
                         calledCSList.innerHTML = '<p style="text-align: center; color: #999;">Belum ada yang dipanggil</p>';
                     } else {
-                        calledCSList.innerHTML = csFiltered.map(item => `
+                        calledCSList.innerHTML = csFiltered.map((item, index) => {
+                            let serviceTime = null;
+                            let timeColor = '#2980b9';
+                            let timeIcon = '⏱️';
+                            
+                            if (index < csFiltered.length - 1 && csFiltered[index + 1].called_at && item.called_at) {
+                                serviceTime = Math.round((new Date(item.called_at) - new Date(csFiltered[index + 1].called_at)) / 60000);
+                                
+                                if (serviceTime > 15) {
+                                    timeColor = '#e74c3c';
+                                    timeIcon = '⚠️';
+                                } else if (serviceTime > 10) {
+                                    timeColor = '#f39c12';
+                                }
+                            }
+                            
+                            return `
                             <div class="queue-item clickable" style="border-left-color: #28a745;" onclick="selectNumber('${item.queue_number}')">
                                 <div>
                                     <span class="queue-number" style="color: #28a745;">${item.queue_number}</span>
                                     <span> - ${item.customer_name || '-'}</span>
                                     <span style="margin-left: 10px; color: #666;">[${item.counter?.toUpperCase() || '-'}]</span>
+                                    ${serviceTime && serviceTime > 0 ? `<br><span style="color: ${timeColor}; font-size: 11px; font-weight: ${serviceTime > 15 ? 'bold' : 'normal'};">${timeIcon} ${serviceTime} menit</span>` : ''}
                                 </div>
                                 <small>${item.called_at ? new Date(item.called_at).toLocaleTimeString() : '-'}</small>
                             </div>
-                        `).join('');
+                        `}).join('');
                     }
                     
                     // Filter Teller
@@ -287,16 +339,33 @@
                     if (tellerFiltered.length === 0) {
                         calledTellerList.innerHTML = '<p style="text-align: center; color: #999;">Belum ada yang dipanggil</p>';
                     } else {
-                        calledTellerList.innerHTML = tellerFiltered.map(item => `
+                        calledTellerList.innerHTML = tellerFiltered.map((item, index) => {
+                            let serviceTime = null;
+                            let timeColor = '#2980b9';
+                            let timeIcon = '⏱️';
+                            
+                            if (index < tellerFiltered.length - 1 && tellerFiltered[index + 1].called_at && item.called_at) {
+                                serviceTime = Math.round((new Date(item.called_at) - new Date(tellerFiltered[index + 1].called_at)) / 60000);
+                                
+                                if (serviceTime > 15) {
+                                    timeColor = '#e74c3c';
+                                    timeIcon = '⚠️';
+                                } else if (serviceTime > 10) {
+                                    timeColor = '#f39c12';
+                                }
+                            }
+                            
+                            return `
                             <div class="queue-item clickable" style="border-left-color: #28a745;" onclick="selectNumber('${item.queue_number}')">
                                 <div>
                                     <span class="queue-number" style="color: #28a745;">${item.queue_number}</span>
                                     <span> - ${item.customer_name || '-'}</span>
                                     <span style="margin-left: 10px; color: #666;">[${item.counter?.toUpperCase() || '-'}]</span>
+                                    ${serviceTime && serviceTime > 0 ? `<br><span style="color: ${timeColor}; font-size: 11px; font-weight: ${serviceTime > 15 ? 'bold' : 'normal'};">${timeIcon} ${serviceTime} menit</span>` : ''}
                                 </div>
                                 <small>${item.called_at ? new Date(item.called_at).toLocaleTimeString() : '-'}</small>
                             </div>
-                        `).join('');
+                        `}).join('');
                     }
                 }
             } catch (error) {

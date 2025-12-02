@@ -145,18 +145,21 @@ body {
 /* Counter badge floating */
 .counter-badge {
     position: absolute;
-    bottom: 10px;
-    right: 10px;
+    bottom: 0;
+    right: 0;
     z-index: 10;
 }
 
 .counter-circle {
-    width: clamp(45px, 5vw, 90px);
-    height: clamp(45px, 5vw, 90px);
-    border-radius: 50%;
-    background: #0066ff;
+    width: clamp(80px, 10vw, 120px);
+    height: clamp(60px, 7.5vw, 90px);
+    background: #005cff;
+    border-top-left-radius: clamp(30px, 3.5vw, 40px);
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
     color: white;
-    font-size: clamp(22px, 2.5vw, 44px);
+    font-size: clamp(32px, 2.5vw, 88px);
     font-weight: bold;
     display: flex;
     align-items: center;

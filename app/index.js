@@ -726,6 +726,7 @@ app.post('/api/next-queue', requireAuth, async (req, res) => {
     if (queue.length > 0) {
         const nextItem = queue.shift();
         counters[counter].current = nextItem.number;
+        counters[counter].lastCalledAt = new Date();
         
         // Update database
         try {
@@ -805,14 +806,55 @@ app.get('/api/queue', (req, res) => {
     });
 });
 
-app.get('/api/queue-status', (req, res) => {
-    res.json({
-        queueCS: queueCS,
-        queueTeller: queueTeller,
-        counters: counters,
-        totalCS: queueCS.length,
-        totalTeller: queueTeller.length
-    });
+app.get('/api/queue-status', async (req, res) => {
+    const DEFAULT_SERVICE_TIME = 10;
+    
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Calculate average service time per counter type
+        const avgTimeResult = await pool.query(`
+            SELECT 
+                queue_type,
+                AVG(EXTRACT(EPOCH FROM (called_at - created_at))/60) as avg_minutes
+            FROM queue_transactions 
+            WHERE status = 'called' 
+            AND called_at IS NOT NULL 
+            AND DATE(created_at) = $1
+            AND EXTRACT(EPOCH FROM (called_at - created_at))/60 < 60
+            GROUP BY queue_type
+        `, [today]);
+        
+        const avgServiceTime = {
+            cs: DEFAULT_SERVICE_TIME,
+            teller: DEFAULT_SERVICE_TIME
+        };
+        
+        avgTimeResult.rows.forEach(row => {
+            if (row.avg_minutes && row.avg_minutes > 0) {
+                avgServiceTime[row.queue_type] = Math.round(row.avg_minutes);
+            }
+        });
+        
+        res.json({
+            queueCS: queueCS,
+            queueTeller: queueTeller,
+            counters: counters,
+            totalCS: queueCS.length,
+            totalTeller: queueTeller.length,
+            avgServiceTime: avgServiceTime
+        });
+    } catch (error) {
+        console.error('Queue status error:', error);
+        res.json({
+            queueCS: queueCS,
+            queueTeller: queueTeller,
+            counters: counters,
+            totalCS: queueCS.length,
+            totalTeller: queueTeller.length,
+            avgServiceTime: { cs: DEFAULT_SERVICE_TIME, teller: DEFAULT_SERVICE_TIME }
+        });
+    }
 });
 
 // Reload queue from database (admin only)
