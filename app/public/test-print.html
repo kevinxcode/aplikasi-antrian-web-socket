@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Print</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+        #result { margin-top: 20px; padding: 10px; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+    <h1>Test Print Python</h1>
+    <button onclick="testPrint()">Test Print A001</button>
+    <div id="result"></div>
+
+    <script>
+        async function testPrint() {
+            const result = document.getElementById('result');
+            result.innerHTML = 'Printing...';
+            
+            try {
+                const response = await fetch('/api/test-print-python');
+                const data = await response.json();
+                
+                if (data.success) {
+                    result.innerHTML = '<strong>SUCCESS!</strong><br>' + data.output;
+                } else {
+                    result.innerHTML = '<strong>ERROR:</strong><br>' + data.error;
+                }
+            } catch (error) {
+                result.innerHTML = '<strong>ERROR:</strong><br>' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

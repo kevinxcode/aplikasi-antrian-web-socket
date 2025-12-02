@@ -173,7 +173,7 @@
 
         async function detectPrinters() {
             const printerListDiv = document.getElementById('printerList');
-            printerListDiv.innerHTML = '<div style="padding: 10px; text-align: center;">⏳ Mendeteksi printer...</div>';
+            printerListDiv.innerHTML = '<div style="padding: 10px; text-align: center;">⏳ Scanning USB devices...</div>';
             printerListDiv.style.display = 'block';
             
             try {
@@ -181,17 +181,61 @@
                 const data = await response.json();
                 
                 if (data.success && data.printers.length > 0) {
-                    let html = '<div class="printer-list"><div style="font-weight: 600; margin-bottom: 10px;">✅ Printer Terdeteksi:</div>';
-                    data.printers.forEach(printer => {
-                        html += `<div class="printer-item">🖨️ ${printer.name}</div>`;
+                    let html = '<div class="printer-list">';
+                    html += '<div style="font-weight: 600; margin-bottom: 10px; color: #28a745;">✅ Thermal Printer Detected (' + data.printers.length + '):</div>';
+                    
+                    data.printers.forEach((printer) => {
+                        const brandColors = {
+                            'Rongta': '#28a745',
+                            'Epson': '#007bff',
+                            'Star': '#6f42c1',
+                            'Citizen': '#fd7e14',
+                            'Zjiang': '#20c997',
+                            'XPrinter': '#e83e8c',
+                            'Generic': '#6c757d'
+                        };
+                        const color = brandColors[printer.brand] || '#17a2b8';
+                        
+                        html += `<div class="printer-item" style="border-left: 4px solid ${color};">`;
+                        html += `<div style="font-weight: 600; color: ${color};">🖨️ ${printer.name}</div>`;
+                        html += `<div style="font-size: 12px; color: #666; margin-top: 5px;">`;
+                        html += `VID: 0x${printer.vendorId.toString(16).toUpperCase().padStart(4, '0')} | `;
+                        html += `PID: 0x${printer.productId.toString(16).toUpperCase().padStart(4, '0')}`;
+                        html += `</div>`;
+                        html += `<div style="font-size: 11px; color: ${color}; margin-top: 5px; font-weight: 600;">✓ Ready for auto-print</div>`;
+                        html += `</div>`;
                     });
+                    
+                    html += '<div style="margin-top: 15px; padding: 10px; background: #d4edda; border-radius: 5px; font-size: 12px; border: 1px solid #c3e6cb;">';
+                    html += '✅ <strong>Printer siap digunakan!</strong><br>';
+                    html += 'Centang "Gunakan USB Print Otomatis" dan klik "Test Print" untuk mencoba.';
+                    html += '</div>';
                     html += '</div>';
                     printerListDiv.innerHTML = html;
                 } else {
-                    printerListDiv.innerHTML = '<div style="padding: 10px; color: #856404; background: #fff3cd; border-radius: 5px;">⚠️ Tidak ada printer USB yang terdeteksi. Pastikan printer sudah terhubung dan menyala.</div>';
+                    let html = '<div style="padding: 15px; color: #856404; background: #fff3cd; border-radius: 5px; border-left: 4px solid #ffc107;">';
+                    html += '<div style="font-weight: 600; margin-bottom: 10px;">⚠️ No Thermal Printer Detected</div>';
+                    html += '<div style="font-size: 13px; line-height: 1.8;">';
+                    html += '<strong>Troubleshooting:</strong><br>';
+                    html += '1. Pastikan printer thermal sudah dicolok ke USB<br>';
+                    html += '2. Pastikan printer menyala (cek lampu indikator)<br>';
+                    html += '3. Cabut dan colok ulang kabel USB<br>';
+                    html += '4. Coba port USB yang berbeda<br>';
+                    html += '5. Restart printer<br>';
+                    html += '6. Install driver printer (jika diperlukan)<br>';
+                    html += '7. Run aplikasi as Administrator<br><br>';
+                    html += '<strong>Supported brands:</strong> Rongta, Epson, Star, Citizen, Zjiang, XPrinter, Custom, ICS, dan Generic ESC/POS';
+                    html += '</div></div>';
+                    printerListDiv.innerHTML = html;
                 }
             } catch (error) {
-                printerListDiv.innerHTML = '<div style="padding: 10px; color: #721c24; background: #f8d7da; border-radius: 5px;">❌ Error: ' + error.message + '</div>';
+                let html = '<div style="padding: 15px; color: #721c24; background: #f8d7da; border-radius: 5px; border-left: 4px solid #dc3545;">';
+                html += '<div style="font-weight: 600; margin-bottom: 10px;">❌ Detection Error</div>';
+                html += '<div style="font-size: 13px;">' + error.message + '</div>';
+                html += '<div style="margin-top: 10px; font-size: 12px;">';
+                html += 'Try: Run Command Prompt as Administrator, then restart the app.';
+                html += '</div></div>';
+                printerListDiv.innerHTML = html;
             }
         }
 

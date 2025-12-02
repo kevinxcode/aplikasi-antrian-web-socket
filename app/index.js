@@ -625,12 +625,9 @@ app.post('/api/add-queue', async (req, res) => {
         
         let printError = null;
         
-        // Auto print via USB if requested
+        // Auto print via USB if requested (using PHP API)
         if (autoPrint) {
             try {
-                const device = new escpos.USB();
-                const printer = new escpos.Printer(device);
-                
                 const settingsResult = await pool.query('SELECT * FROM printer_settings ORDER BY id DESC LIMIT 1');
                 const settings = settingsResult.rows[0] || {
                     title: 'BTN Syariah',
@@ -639,44 +636,27 @@ app.post('/api/add-queue', async (req, res) => {
                     paper_size: '58mm'
                 };
                 
-                await new Promise((resolve, reject) => {
-                    device.open(function(error) {
-                        if (error) {
-                            printError = 'Printer tidak terhubung';
-                            reject(error);
-                        } else {
-                            const serviceType = queueType === 'cs' ? 'CUSTOMER SERVICE' : 'TELLER SERVICE';
-                            const dateStr = new Date().toLocaleString('id-ID');
-                            
-                            printer
-                                .align('CT')
-                                .style('B')
-                                .size(1, 1)
-                                .text(settings.title)
-                                .style('NORMAL')
-                                .size(0, 0)
-                                .text(settings.address)
-                                .text('--------------------------------')
-                                .text('Nomor Antrian')
-                                .size(2, 2)
-                                .style('B')
-                                .text(queueNumber)
-                                .size(0, 0)
-                                .style('NORMAL')
-                                .text(serviceType)
-                                .text(dateStr)
-                                .text('--------------------------------')
-                                .text(settings.footer || '')
-                                .feed(3)
-                                .cut()
-                                .close();
-                            resolve();
-                        }
-                    });
-                });
+                const settingsFile = path.join(__dirname, 'temp_settings.json');
+                fs.writeFileSync(settingsFile, JSON.stringify(settings));
+                
+                const fetch = require('node-fetch');
+                const phpHost = process.env.PHP_HOST || 'host.docker.internal';
+                const phpUrl = `http://${phpHost}:3001/print_api.php?number=${queueNumber}&type=${queueType}`;
+                
+                const response = await fetch(phpUrl);
+                const result = await response.json();
+                
+                try { fs.unlinkSync(settingsFile); } catch(e) {}
+                
+                if (!result.success) {
+                    printError = result.error || 'Print failed';
+                    console.error('Print error:', result.error);
+                } else {
+                    console.log('Print success:', result.output);
+                }
             } catch (printErr) {
                 console.error('Auto print error:', printErr);
-                printError = printErr.message || 'Gagal print ke printer USB';
+                printError = printErr.message || 'Gagal print ke printer';
             }
         }
         
@@ -930,20 +910,83 @@ app.get('/api/transactions', requireAuth, async (req, res) => {
     }
 });
 
-// Get USB printers
+// Get USB printers - Universal detection for all thermal printers
 app.get('/api/usb-printers', (req, res) => {
     try {
-        const devices = escpos.USB.findPrinter();
-        const printers = devices.map((device, index) => ({
-            id: index,
-            vendorId: device.deviceDescriptor.idVendor,
-            productId: device.deviceDescriptor.idProduct,
-            name: `USB Printer ${index + 1} (VID: ${device.deviceDescriptor.idVendor.toString(16)}, PID: ${device.deviceDescriptor.idProduct.toString(16)})`
-        }));
+        const usb = require('usb');
+        const allDevices = usb.getDeviceList();
+        
+        console.log(`\n🔍 Scanning USB devices... Found ${allDevices.length} device(s)`);
+        
+        const printers = [];
+        
+        allDevices.forEach((device, index) => {
+            try {
+                const desc = device.deviceDescriptor;
+                const vendorId = desc.idVendor;
+                const productId = desc.idProduct;
+                
+                let printerName = null;
+                let brand = 'Unknown';
+                
+                // Detect thermal printer brands
+                if (vendorId === 0x1FC9 || vendorId === 8137) {
+                    printerName = 'Rongta Thermal Printer';
+                    brand = 'Rongta';
+                } else if (vendorId === 0x04B8 || vendorId === 1208) {
+                    printerName = 'Epson Thermal Printer';
+                    brand = 'Epson';
+                } else if (vendorId === 0x0519 || vendorId === 1305) {
+                    printerName = 'Star Thermal Printer';
+                    brand = 'Star';
+                } else if (vendorId === 0x0416 || vendorId === 1046) {
+                    printerName = 'Citizen Thermal Printer';
+                    brand = 'Citizen';
+                } else if (vendorId === 0x0DD4 || vendorId === 3540) {
+                    printerName = 'Custom Thermal Printer';
+                    brand = 'Custom';
+                } else if (vendorId === 0x0483 || vendorId === 1155) {
+                    printerName = 'Generic Thermal Printer';
+                    brand = 'Generic';
+                } else if (vendorId === 0x6868 || vendorId === 26728) {
+                    printerName = 'ZJ/Zjiang Thermal Printer';
+                    brand = 'Zjiang';
+                } else if (vendorId === 0x0FE6 || vendorId === 4070) {
+                    printerName = 'ICS Thermal Printer';
+                    brand = 'ICS';
+                } else if (vendorId === 0x20D1 || vendorId === 8401) {
+                    printerName = 'XPrinter Thermal Printer';
+                    brand = 'XPrinter';
+                }
+                
+                // If detected as printer, add to list
+                if (printerName) {
+                    console.log(`   ✓ ${printerName} - VID: 0x${vendorId.toString(16).toUpperCase()}, PID: 0x${productId.toString(16).toUpperCase()}`);
+                    
+                    printers.push({
+                        id: printers.length,
+                        vendorId: vendorId,
+                        productId: productId,
+                        name: printerName,
+                        brand: brand,
+                        status: 'ready'
+                    });
+                }
+            } catch (err) {
+                // Skip device if error
+            }
+        });
+        
+        if (printers.length > 0) {
+            console.log(`✅ Total ${printers.length} thermal printer(s) detected\n`);
+        } else {
+            console.log('⚠️  No thermal printer detected\n');
+        }
+        
         res.json({ success: true, printers });
     } catch (error) {
-        console.error('USB printer error:', error);
-        res.json({ success: false, message: 'Gagal mendeteksi printer USB', printers: [] });
+        console.error('❌ USB detection error:', error.message);
+        res.json({ success: false, message: 'Error: ' + error.message, printers: [] });
     }
 });
 
@@ -1048,6 +1091,25 @@ app.post('/api/test-print', requireAuth, requireRole('admin'), async (req, res) 
         message: 'Test print berhasil',
         printUrl: '/print-receipt/A001'
     });
+});
+
+// Test print Python via PHP
+app.get('/api/test-print-python', async (req, res) => {
+    try {
+        const fetch = require('node-fetch');
+        const phpHost = process.env.PHP_HOST || 'host.docker.internal';
+        const phpUrl = `http://${phpHost}:3001/print_api.php?number=A001&type=cs`;
+        
+        const response = await fetch(phpUrl);
+        const result = await response.json();
+        
+        res.json(result);
+    } catch (error) {
+        res.json({
+            success: false,
+            error: error.message
+        });
+    }
 });
 
 // Print receipt page
