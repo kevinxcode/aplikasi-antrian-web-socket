@@ -33,7 +33,7 @@
             <div style="font-weight: 600; margin-bottom: 15px;">Preview Struk:</div>
             <div style="background: white; padding: 20px; border: 2px dashed #ddd; border-radius: 8px; font-family: 'Courier New', monospace; text-align: center; max-width: 300px; margin: 0 auto;" id="receiptPreview">
                 <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;" id="previewTitle">BTN Syariah</div>
-                <div style="font-size: 12px; margin-bottom: 10px;" id="previewAddress">Jl. Sopo Del No 56 Jakarta Selatan</div>
+                <div style="font-size: 12px; margin-bottom: 10px;" id="previewAddress">Jl. abcd  No 00 Jakarta Selatan</div>
                 <div style="border-top: 1px dashed #333; margin: 10px 0;"></div>
                 <div style="font-size: 14px; margin: 10px 0;">Nomor Antrian</div>
                 <div style="font-size: 32px; font-weight: bold; margin: 15px 0;">A001</div>
@@ -52,7 +52,7 @@
 
             <div class="form-group">
                 <label for="address">Alamat:</label>
-                <input type="text" id="address" name="address" placeholder="Jl. Sopo Del No 56 Jakarta Selatan" required>
+                <input type="text" id="address" name="address" placeholder="Jl. abc  d No 00 Jakarta Selatan" required>
             </div>
 
             <div class="form-group">
@@ -92,7 +92,7 @@
     <script>
         function updatePreview() {
             const title = document.getElementById('title').value || 'BTN Syariah';
-            const address = document.getElementById('address').value || 'Jl. Sopo Del No 56 Jakarta Selatan';
+            const address = document.getElementById('address').value || 'Jl. abc d No 00 Jakarta Selatan';
             const footer = document.getElementById('footer_note').value || '';
             const paperSize = document.getElementById('paper_size').value || '58mm';
             

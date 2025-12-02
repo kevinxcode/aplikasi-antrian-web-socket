@@ -641,7 +641,14 @@ app.post('/api/add-queue', async (req, res) => {
                 
                 const fetch = require('node-fetch');
                 const phpHost = process.env.PHP_HOST || 'host.docker.internal';
-                const phpUrl = `http://${phpHost}:3001/print_api.php?number=${queueNumber}&type=${queueType}`;
+                const params = new URLSearchParams({
+                    number: queueNumber,
+                    type: queueType,
+                    title: settings.title,
+                    address: settings.address,
+                    footer: settings.footer || ''
+                });
+                const phpUrl = `http://${phpHost}:3001/print_api.php?${params}`;
                 
                 const response = await fetch(phpUrl);
                 const result = await response.json();
