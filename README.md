@@ -6,7 +6,7 @@ Aplikasi Node.js untuk sistem antrian real-time menggunakan WebSocket dengan 2 c
 
 ### Fitur Umum
 - ✅ Tambah antrian baru dengan nama (opsional)
-- ✅ **Cetak struk otomatis** ke printer thermal 58mm
+- ✅ **Cetak struk otomatis** menggunakan browser (Ctrl+P)
 - ✅ 4 Counter/Loket terpisah (CS1, CS2, Teller1, Teller2)
 - ✅ 2 Tipe antrian (CS dan Teller)
 - ✅ Panggil antrian berikutnya per loket
@@ -21,7 +21,7 @@ Aplikasi Node.js untuk sistem antrian real-time menggunakan WebSocket dengan 2 c
 - ✅ **Export data transaksi ke CSV** dengan filter
 - ✅ **Manajemen User** (tambah, hapus, lihat)
 - ✅ **Pengaturan Printer Struk** (judul, alamat, footer)
-- ✅ **Test Print** untuk cek printer
+- ✅ **Test Print** untuk cek format struk
 - ✅ Reset antrian
 - ✅ Pengaturan display (marquee, slide images)
 
@@ -126,16 +126,25 @@ Jika deploy di server, ganti `localhost` dengan IP server Anda.
         └── display.html        # Display screen
 ```
 
-## 🖨️ Setup Printer Thermal
+## 🖨️ Setup Printer
 
-Untuk mengaktifkan fitur cetak struk otomatis:
+### Opsi 1: Browser Print (Default)
+Fitur cetak struk menggunakan browser (Ctrl+P):
 
-1. Hubungkan printer thermal 58mm ke USB
-2. Install dependencies: `cd app && npm install`
-3. Test printer: `node test-printer.js`
-4. Konfigurasi struk di menu admin
+1. Tidak perlu install driver printer khusus
+2. Bisa menggunakan printer apapun (thermal, inkjet, laser)
+3. Konfigurasi format struk di menu admin
+4. Test print langsung dari pengaturan
+5. Otomatis buka dialog print saat ambil nomor
 
-Panduan lengkap: [PRINTER-SETUP.md](PRINTER-SETUP.md)
+### Opsi 2: QZ Tray (Print Otomatis)
+Fitur cetak otomatis ke thermal printer:
+
+1. Install QZ Tray di komputer client
+2. Konfigurasi nama printer di admin panel
+3. Print otomatis tanpa dialog browser
+4. Cocok untuk thermal printer (POS-58, EPSON TM-T82, dll)
+5. Lihat panduan lengkap di [QZ-TRAY-SETUP.md](QZ-TRAY-SETUP.md)
 
 ## 🎯 Cara Penggunaan
 
@@ -175,9 +184,17 @@ Panduan lengkap: [PRINTER-SETUP.md](PRINTER-SETUP.md)
    - Alamat lengkap
    - Catatan footer (opsional)
    - Ukuran kertas (58mm atau 80mm)
+   - **QZ Tray:** Centang untuk print otomatis
+   - **Nama Printer:** Isi nama printer thermal (jika pakai QZ Tray)
 3. Preview struk akan update otomatis
-4. Klik "Test Print" untuk coba cetak
+4. Klik "Test Print" untuk preview format
 5. Klik "Simpan Pengaturan"
+
+**Setup QZ Tray (Opsional):**
+- Download QZ Tray: https://qz.io/download/
+- Install di komputer yang akan print
+- Jalankan QZ Tray (harus aktif saat print)
+- Lihat panduan lengkap: [QZ-TRAY-SETUP.md](QZ-TRAY-SETUP.md)
 
 ### 3. CS Counter (CS1/CS2)
 1. Login dengan username cs1 atau cs2
@@ -198,8 +215,9 @@ Panduan lengkap: [PRINTER-SETUP.md](PRINTER-SETUP.md)
 2. Pilih tipe layanan (CS atau Teller)
 3. Masukkan nama (opsional)
 4. Klik "Ambil Nomor"
-5. **Printer otomatis cetak struk**
-6. Nomor akan masuk ke antrian dan tampil di display
+5. **Browser otomatis buka dialog print**
+6. Tekan Ctrl+P atau klik Print untuk cetak
+7. Nomor akan masuk ke antrian dan tampil di display
 
 ### 6. Display Screen (Public)
 - Tampilkan di TV/Monitor terpisah
@@ -383,6 +401,7 @@ Lihat file [DEPLOY.md](DEPLOY.md) untuk panduan lengkap deploy ke Ubuntu server 
 - **Backend**: Node.js + Express.js
 - **Real-time**: Socket.IO (WebSocket)
 - **Frontend**: HTML5 + Vanilla JavaScript
+- **Print**: Browser Print API + QZ Tray (optional)
 - **Container**: Docker + Docker Compose
 
 ## 📝 License

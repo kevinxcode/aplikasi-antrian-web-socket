@@ -1,4 +1,20 @@
-// Update clock and date
+// USB Print Configuration
+let usbPrintEnabled = false;
+
+async function loadPrintSettings() {
+    try {
+        const response = await fetch('/api/printer-settings');
+        const result = await response.json();
+        if (result.success && result.settings) {
+            usbPrintEnabled = result.settings.use_usb_print || result.settings.use_qz_tray || false;
+        }
+    } catch (error) {
+        console.error('Error loading print settings:', error);
+    }
+}
+
+loadPrintSettings();
+
 function updateDateTime() {
     const now = new Date();
     const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
@@ -19,58 +35,39 @@ function updateDateTime() {
 updateDateTime();
 setInterval(updateDateTime, 1000);
 
-// Load display settings for logo, left image, and marquee
 async function loadDisplaySettings() {
     try {
         const response = await fetch('/api/display-settings');
         const result = await response.json();
         
         if (result.success && result.settings) {
-            // Update marquee
             if (result.settings.marquee_text) {
                 document.getElementById('marqueeText').textContent = result.settings.marquee_text;
             }
-            // Update logo
             if (result.settings.logo_base64) {
                 const topLogo = document.getElementById('topLogo');
                 const footerLogo = document.getElementById('footerLogo');
                 if (topLogo) topLogo.src = result.settings.logo_base64;
                 if (footerLogo) footerLogo.src = result.settings.logo_base64;
-            } else {
-                // Fallback to default
-                const topLogo = document.getElementById('topLogo');
-                const footerLogo = document.getElementById('footerLogo');
-                if (topLogo) topLogo.src = '';
-                if (footerLogo) footerLogo.src = '';
             }
-            // Update left image
             if (result.settings.left_image_base64) {
                 const bgImage = document.getElementById('bgImage');
                 if (bgImage) bgImage.src = result.settings.left_image_base64;
-            } else {
-                // Fallback to default
-                const bgImage = document.getElementById('bgImage');
-                if (bgImage) bgImage.src = '';
             }
         }
     } catch (error) {
         console.error('Error loading display settings:', error);
-        // Fallback to default on error
-        document.getElementById('topLogo').src = '';
-        document.getElementById('footerLogo').src = '';
-        document.getElementById('bgImage').src = '';
     }
 }
 
 loadDisplaySettings();
 
-// Ambil nomor antrian
 async function ambilNomor(type) {
     try {
         const response = await fetch('/api/add-queue', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type })
+            body: JSON.stringify({ type, autoPrint: usbPrintEnabled })
         });
         
         const result = await response.json();
@@ -79,26 +76,32 @@ async function ambilNomor(type) {
             document.getElementById('nomorAntrian').textContent = result.queueItem.number;
             document.getElementById('jenisLayanan').textContent = typeName;
             
+            const printErrorAlert = document.getElementById('printErrorAlert');
+            if (result.printError) {
+                document.getElementById('printErrorMessage').textContent = 'Gagal print: ' + result.printError;
+                printErrorAlert.style.display = 'block';
+            } else {
+                printErrorAlert.style.display = 'none';
+            }
+            
             const modal = document.getElementById('resultModal');
             modal.classList.add('show');
             
-            // Show print error if exists
-            if (result.printError) {
+            if (!usbPrintEnabled) {
                 setTimeout(() => {
-                    showErrorModal('Nomor antrian berhasil dibuat, tetapi print gagal: ' + result.printError);
-                }, 2500);
+                    window.open(`/print-receipt/${result.queueItem.number}`, '_blank', 'width=300,height=400');
+                }, 300);
             }
             
             setTimeout(() => {
                 modal.classList.remove('show');
-            }, 2000);
+            }, result.printError ? 4000 : 2000);
         }
     } catch (error) {
         showErrorModal('Gagal mengambil nomor antrian');
     }
 }
 
-// Show error modal
 function showErrorModal(message) {
     document.getElementById('errorMessage').textContent = message;
     const errorModal = document.getElementById('errorModal');

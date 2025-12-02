@@ -3,48 +3,47 @@
  * Jalankan: node check-printers.js
  */
 
-try {
-    const escpos = require('escpos');
-    escpos.USB = require('escpos-usb');
-    
-    console.log('🔍 Mencari printer USB...\n');
-    
-    const devices = escpos.USB.findPrinter();
-    
-    if (devices.length === 0) {
-        console.log('❌ Tidak ada printer thermal yang terdeteksi\n');
-        console.log('Troubleshooting:');
-        console.log('1. Pastikan printer sudah dicolok ke USB');
-        console.log('2. Pastikan printer dalam keadaan menyala');
-        console.log('3. Coba port USB yang berbeda');
-        process.exit(1);
-    }
-    
-    console.log(`✅ Ditemukan ${devices.length} printer:\n`);
-    
-    devices.forEach((device, index) => {
-        const vendorId = '0x' + device.deviceDescriptor.idVendor.toString(16).padStart(4, '0');
-        const productId = '0x' + device.deviceDescriptor.idProduct.toString(16).padStart(4, '0');
+const { printer: ThermalPrinter, types: PrinterTypes } = require('node-thermal-printer');
+
+console.log('🔍 Mencari printer USB...\n');
+
+// Test dengan auto-detect
+const printer = new ThermalPrinter({
+    type: PrinterTypes.EPSON,
+    interface: 'usb',
+    characterSet: 'PC437_USA',
+    removeSpecialCharacters: false,
+    lineCharacter: "-",
+    width: 32
+});
+
+async function checkPrinter() {
+    try {
+        // Try to get printer status
+        const isConnected = await printer.isPrinterConnected();
         
-        console.log(`Printer ${index + 1}:`);
-        console.log(`  Vendor ID:  ${vendorId}`);
-        console.log(`  Product ID: ${productId}`);
-        console.log(`  Manufacturer: ${device.deviceDescriptor.iManufacturer || 'N/A'}`);
-        console.log(`  Product: ${device.deviceDescriptor.iProduct || 'N/A'}`);
-        console.log('');
-        
-        if (index === 0) {
-            console.log('  ⭐ Printer ini akan dipilih secara otomatis\n');
+        if (isConnected) {
+            console.log('✅ Printer thermal terdeteksi dan siap digunakan!\n');
+            console.log('📝 Catatan:');
+            console.log('- Printer akan dipilih otomatis');
+            console.log('- Gunakan "node test-printer.js" untuk test print');
+            console.log('- Jika ada masalah, pastikan driver printer sudah terinstall\n');
+        } else {
+            console.log('❌ Tidak ada printer thermal yang terdeteksi\n');
+            console.log('Troubleshooting:');
+            console.log('1. Pastikan printer sudah dicolok ke USB');
+            console.log('2. Pastikan printer dalam keadaan menyala');
+            console.log('3. Coba port USB yang berbeda');
+            console.log('4. Install driver printer jika diperlukan\n');
         }
-    });
-    
-    console.log('📝 Catatan:');
-    console.log('- Printer pertama akan dipilih otomatis');
-    console.log('- Jika ingin pilih printer spesifik, gunakan Vendor ID & Product ID');
-    console.log('- Contoh: new escpos.USB(0x04b8, 0x0e15)\n');
-    
-} catch (error) {
-    console.error('❌ Error:', error.message);
-    console.log('\nPastikan dependencies sudah terinstall:');
-    console.log('npm install escpos escpos-usb');
+    } catch (error) {
+        console.log('⚠️  Tidak dapat mendeteksi printer');
+        console.log('Error:', error.message);
+        console.log('\nPastikan:');
+        console.log('1. Printer sudah terhubung ke USB');
+        console.log('2. Driver printer sudah terinstall');
+        console.log('3. Printer dalam keadaan menyala\n');
+    }
 }
+
+checkPrinter();

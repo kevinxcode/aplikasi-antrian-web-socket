@@ -4,6 +4,10 @@ const socketIo = require('socket.io');
 const session = require('express-session');
 const bcrypt = require('bcrypt');
 const path = require('path');
+const crypto = require('crypto');
+const fs = require('fs');
+const escpos = require('escpos');
+escpos.USB = require('escpos-usb');
 const { pool, initDB } = require('./db');
 
 const app = express();
@@ -62,6 +66,7 @@ function resetDailyQueue() {
 
 // Middleware
 app.use(express.static('public'));
+app.use('/certs', express.static(path.join(__dirname, 'certs')));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(session({
@@ -548,7 +553,7 @@ app.post('/api/activate-premium', requireAuth, requireRole('admin'), async (req,
 });
 
 app.post('/api/add-queue', async (req, res) => {
-    const { type, name } = req.body;
+    const { type, name, autoPrint } = req.body;
     
     try {
         const today = new Date().toISOString().split('T')[0];
@@ -618,23 +623,68 @@ app.post('/api/add-queue', async (req, res) => {
             totalTeller: queueTeller.length
         });
         
-        // Print receipt
-        console.log(`🖨️  Attempting to print: ${queueItem.number} (${queueItem.type})`);
-        const { printReceipt } = require('./printer');
-        
         let printError = null;
-        try {
-            await printReceipt(queueItem, pool);
-            console.log(`✅ Print success: ${queueItem.number}`);
-        } catch (err) {
-            printError = err.message || 'Cannot find printer';
-            console.error(`❌ Print failed: ${queueItem.number} - ${printError}`);
+        
+        // Auto print via USB if requested
+        if (autoPrint) {
+            try {
+                const device = new escpos.USB();
+                const printer = new escpos.Printer(device);
+                
+                const settingsResult = await pool.query('SELECT * FROM printer_settings ORDER BY id DESC LIMIT 1');
+                const settings = settingsResult.rows[0] || {
+                    title: 'BTN Syariah',
+                    address: 'Jl. ABC DEF No 00 Jakarta Selatan',
+                    footer: '',
+                    paper_size: '58mm'
+                };
+                
+                await new Promise((resolve, reject) => {
+                    device.open(function(error) {
+                        if (error) {
+                            printError = 'Printer tidak terhubung';
+                            reject(error);
+                        } else {
+                            const serviceType = queueType === 'cs' ? 'CUSTOMER SERVICE' : 'TELLER SERVICE';
+                            const dateStr = new Date().toLocaleString('id-ID');
+                            
+                            printer
+                                .align('CT')
+                                .style('B')
+                                .size(1, 1)
+                                .text(settings.title)
+                                .style('NORMAL')
+                                .size(0, 0)
+                                .text(settings.address)
+                                .text('--------------------------------')
+                                .text('Nomor Antrian')
+                                .size(2, 2)
+                                .style('B')
+                                .text(queueNumber)
+                                .size(0, 0)
+                                .style('NORMAL')
+                                .text(serviceType)
+                                .text(dateStr)
+                                .text('--------------------------------')
+                                .text(settings.footer || '')
+                                .feed(3)
+                                .cut()
+                                .close();
+                            resolve();
+                        }
+                    });
+                });
+            } catch (printErr) {
+                console.error('Auto print error:', printErr);
+                printError = printErr.message || 'Gagal print ke printer USB';
+            }
         }
         
         res.json({ 
             success: true, 
             queueItem,
-            printError: printError
+            printUrl: `/print-receipt/${queueItem.number}`,
+            printError
         });
     } catch (error) {
         console.error('Add queue error:', error);
@@ -838,14 +888,94 @@ app.get('/api/transactions', requireAuth, async (req, res) => {
     }
 });
 
-// Printer settings API
-app.get('/api/printer-settings', requireAuth, requireRole('admin'), async (req, res) => {
+// Get USB printers
+app.get('/api/usb-printers', (req, res) => {
+    try {
+        const devices = escpos.USB.findPrinter();
+        const printers = devices.map((device, index) => ({
+            id: index,
+            vendorId: device.deviceDescriptor.idVendor,
+            productId: device.deviceDescriptor.idProduct,
+            name: `USB Printer ${index + 1} (VID: ${device.deviceDescriptor.idVendor.toString(16)}, PID: ${device.deviceDescriptor.idProduct.toString(16)})`
+        }));
+        res.json({ success: true, printers });
+    } catch (error) {
+        console.error('USB printer error:', error);
+        res.json({ success: false, message: 'Gagal mendeteksi printer USB', printers: [] });
+    }
+});
+
+// Print receipt via USB
+app.post('/api/print-usb', async (req, res) => {
+    const { queueNumber, queueType, customerName } = req.body;
+    
+    try {
+        const settingsResult = await pool.query('SELECT * FROM printer_settings ORDER BY id DESC LIMIT 1');
+        const settings = settingsResult.rows[0] || {
+            title: 'BTN Syariah',
+            address: 'Jl. ABC DEF No 00 Jakarta Selatan',
+            footer: '',
+            paper_size: '58mm'
+        };
+        
+        const device = new escpos.USB();
+        const printer = new escpos.Printer(device);
+        
+        device.open(function(error) {
+            if (error) {
+                console.error('USB open error:', error);
+                return res.json({ success: false, message: 'Gagal membuka koneksi printer' });
+            }
+            
+            const serviceType = queueType === 'cs' ? 'CUSTOMER SERVICE' : 'TELLER SERVICE';
+            const now = new Date();
+            const dateStr = now.toLocaleString('id-ID');
+            
+            printer
+                .align('CT')
+                .style('B')
+                .size(1, 1)
+                .text(settings.title)
+                .style('NORMAL')
+                .size(0, 0)
+                .text(settings.address)
+                .text('--------------------------------')
+                .text('Nomor Antrian')
+                .size(2, 2)
+                .style('B')
+                .text(queueNumber)
+                .size(0, 0)
+                .style('NORMAL')
+                .text(serviceType)
+                .text(dateStr)
+                .text('--------------------------------')
+                .text(settings.footer || '')
+                .feed(3)
+                .cut()
+                .close();
+            
+            res.json({ success: true, message: 'Print berhasil' });
+        });
+    } catch (error) {
+        console.error('Print USB error:', error);
+        res.json({ success: false, message: 'Gagal print: ' + error.message });
+    }
+});
+
+// Printer settings API (public access for print)
+app.get('/api/printer-settings', async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM printer_settings ORDER BY id DESC LIMIT 1');
         if (result.rows.length > 0) {
             res.json({ success: true, settings: result.rows[0] });
         } else {
-            res.json({ success: true, settings: { title: 'BTN Syariah', address: 'Jl. Sopo Del No 56 Jakarta Selatan', footer_note: '', paper_width: '58mm' } });
+            res.json({ success: true, settings: { 
+                title: 'BTN Syariah', 
+                address: 'Jl. Sopo Del No 56 Jakarta Selatan', 
+                footer: '', 
+                paper_size: '58mm',
+                use_usb_print: false
+            } });
         }
     } catch (error) {
         console.error('Get printer settings error:', error);
@@ -854,13 +984,13 @@ app.get('/api/printer-settings', requireAuth, requireRole('admin'), async (req, 
 });
 
 app.post('/api/printer-settings', requireAuth, requireRole('admin'), async (req, res) => {
-    const { title, address, footer_note, paper_width } = req.body;
+    const { title, address, footer, paper_size, use_usb_print } = req.body;
     const userId = req.session.user.id;
     
     try {
         await pool.query(
-            'UPDATE printer_settings SET title = $1, address = $2, footer_note = $3, paper_width = $4, updated_at = NOW(), updated_by = $5',
-            [title, address, footer_note, paper_width, userId]
+            'UPDATE printer_settings SET title = $1, address = $2, footer = $3, paper_size = $4, use_qz_tray = $5, updated_at = NOW(), updated_by = $6',
+            [title, address, footer, paper_size, use_usb_print || false, userId]
         );
         res.json({ success: true, message: 'Pengaturan printer berhasil diupdate' });
     } catch (error) {
@@ -871,18 +1001,135 @@ app.post('/api/printer-settings', requireAuth, requireRole('admin'), async (req,
 
 // Test print
 app.post('/api/test-print', requireAuth, requireRole('admin'), async (req, res) => {
+    res.json({ 
+        success: true, 
+        message: 'Test print berhasil',
+        printUrl: '/print-receipt/A001'
+    });
+});
+
+// Print receipt page
+app.get('/print-receipt/:number', async (req, res) => {
+    const { number } = req.params;
+    
     try {
-        const { printReceipt } = require('./printer');
-        const testData = {
-            number: 'A001',
-            type: 'cs',
-            name: 'Test Print'
+        // Get printer settings
+        const settingsResult = await pool.query('SELECT * FROM printer_settings ORDER BY id DESC LIMIT 1');
+        const settings = settingsResult.rows[0] || {
+            title: 'BTN Syariah',
+            address: 'Jl. ABC DEF No 00 Jakarta Selatan',
+            footer_note: '',
+            paper_width: '58mm'
         };
-        await printReceipt(testData, pool);
-        res.json({ success: true, message: 'Test print berhasil' });
+        
+        // Get queue data
+        const queueResult = await pool.query(
+            'SELECT * FROM queue_transactions WHERE queue_number = $1 ORDER BY created_at DESC LIMIT 1',
+            [number]
+        );
+        
+        let queueData;
+        if (queueResult.rows.length > 0) {
+            queueData = queueResult.rows[0];
+        } else {
+            // For test print or if not found in DB
+            queueData = {
+                queue_number: number,
+                queue_type: number.startsWith('A') ? 'cs' : 'teller',
+                customer_name: 'Test Print',
+                created_at: new Date()
+            };
+        }
+        
+        // Format date
+        const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+        const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+        const now = new Date(queueData.created_at);
+        const dayName = days[now.getDay()];
+        const date = now.getDate();
+        const monthName = months[now.getMonth()];
+        const year = now.getFullYear();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const dateStr = `${dayName}, ${date} ${monthName} ${year} ${hours}:${minutes}`;
+        
+        const serviceType = queueData.queue_type === 'cs' ? 'CUSTOMER SERVICE' : 'TELLER SERVICE';
+        
+        const html = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Print Receipt - ${number}</title>
+    <style>
+        @media print {
+            @page {
+                size: ${settings.paper_width === '80mm' ? '80mm' : '58mm'} auto;
+                margin: 0;
+            }
+            body { margin: 0; }
+        }
+        body {
+            font-family: 'Courier New', monospace;
+            font-size: ${settings.paper_width === '80mm' ? '12px' : '10px'};
+            line-height: 1.2;
+            text-align: center;
+            width: ${settings.paper_width === '80mm' ? '80mm' : '58mm'};
+            margin: 0 auto;
+            padding: 5mm;
+        }
+        .title { font-weight: bold; margin-bottom: 2px; }
+        .address { margin-bottom: 5px; }
+        .line { border-top: 1px dashed #000; margin: 5px 0; }
+        .queue-title { margin: 5px 0; }
+        .queue-number {
+            font-size: ${settings.paper_width === '80mm' ? '24px' : '20px'};
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .service-type { margin: 5px 0; }
+        .datetime { margin: 5px 0; }
+        .footer { margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <div class="title">${settings.title}</div>
+    <div class="address">${settings.address}</div>
+    <div class="line"></div>
+    <div class="queue-title">Nomor Antrian</div>
+    <div class="queue-number">${number}</div>
+    <div class="service-type">${serviceType}</div>
+    <div class="datetime">${dateStr}</div>
+    ${settings.footer_note ? `<div class="footer">${settings.footer_note}</div>` : ''}
+    <div class="line"></div>
+    
+    <script>
+        window.onload = function() {
+            // Auto print without dialog
+            setTimeout(() => {
+                window.print();
+                setTimeout(() => {
+                    window.close();
+                }, 500);
+            }, 100);
+        };
+        
+        // Hide print dialog and auto print
+        window.addEventListener('beforeprint', function() {
+            // This will auto-confirm print
+        });
+        
+        window.addEventListener('afterprint', function() {
+            window.close();
+        });
+    </script>
+</body>
+</html>`;
+        
+        res.send(html);
     } catch (error) {
-        console.error('Test print error:', error);
-        res.json({ success: false, message: 'Test print gagal: ' + error.message });
+        console.error('Print receipt error:', error);
+        res.status(500).send('Error generating receipt');
     }
 });
 

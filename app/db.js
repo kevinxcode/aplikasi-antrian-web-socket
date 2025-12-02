@@ -109,31 +109,37 @@ async function initDB() {
                 id SERIAL PRIMARY KEY,
                 title VARCHAR(100) DEFAULT 'BTN Syariah',
                 address VARCHAR(255) DEFAULT 'Jl. Sopo Del No 56 Jakarta Selatan',
-                footer_note TEXT DEFAULT '',
-                paper_width VARCHAR(10) DEFAULT '58mm',
+                footer TEXT DEFAULT '',
+                paper_size VARCHAR(10) DEFAULT '58mm',
+                use_qz_tray BOOLEAN DEFAULT FALSE,
+                qz_printer_name VARCHAR(255) DEFAULT '',
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_by INTEGER REFERENCES users(id)
             )
         `);
         
-        // Add paper_width column if not exists
+        // Add QZ Tray columns if not exists
         await client.query(`
             ALTER TABLE printer_settings 
-            ADD COLUMN IF NOT EXISTS paper_width VARCHAR(10) DEFAULT '58mm'
-        `);
-        
-        // Add printer ID columns if not exists
-        await client.query(`
-            ALTER TABLE printer_settings 
-            ADD COLUMN IF NOT EXISTS printer_vendor_id VARCHAR(10),
-            ADD COLUMN IF NOT EXISTS printer_product_id VARCHAR(10)
+            ADD COLUMN IF NOT EXISTS footer TEXT,
+            ADD COLUMN IF NOT EXISTS paper_size VARCHAR(10) DEFAULT '58mm',
+            ADD COLUMN IF NOT EXISTS use_qz_tray BOOLEAN DEFAULT FALSE,
+            ADD COLUMN IF NOT EXISTS qz_printer_name VARCHAR(255) DEFAULT ''
         `);
         
         // Insert default printer settings
         await client.query(`
-            INSERT INTO printer_settings (title, address, footer_note, paper_width)
-            SELECT 'BTN Syariah', 'Jl. Sopo Del No 56 Jakarta Selatan', '', '58mm'
+            INSERT INTO printer_settings (title, address, footer, paper_size, use_qz_tray, qz_printer_name)
+            SELECT 'BTN Syariah', 'Jl. Sopo Del No 56 Jakarta Selatan', '', '58mm', FALSE, ''
             WHERE NOT EXISTS (SELECT 1 FROM printer_settings LIMIT 1)
+        `);
+        
+        // Update old column names to new ones
+        await client.query(`
+            UPDATE printer_settings 
+            SET footer = COALESCE(footer_note, ''), 
+                paper_size = COALESCE(paper_width, '58mm')
+            WHERE footer IS NULL OR paper_size IS NULL
         `);
         
         await client.query(`
