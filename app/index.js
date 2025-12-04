@@ -12,7 +12,12 @@ const { pool, initDB } = require('./db');
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server);
+const io = socketIo(server, {
+    cors: { origin: "*" },
+    transports: ['websocket', 'polling'],
+    pingTimeout: 30000,
+    pingInterval: 25000
+});
 
 // Initialize database and load last queue numbers
 initDB().then(() => {
