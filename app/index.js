@@ -279,10 +279,26 @@ app.get('/health', async (req, res) => {
 
 // Routes
 app.get('/', (req, res) => {
+    if (req.session.user) {
+        const user = req.session.user;
+        if (user.counter_access === 'cs1') return res.redirect('/cs1');
+        if (user.counter_access === 'cs2') return res.redirect('/cs2');
+        if (user.counter_access === 't1') return res.redirect('/teller1');
+        if (user.counter_access === 't2') return res.redirect('/teller2');
+        return res.redirect('/admin');
+    }
     res.redirect('/login');
 });
 
 app.get('/login', (req, res) => {
+    if (req.session.user) {
+        const user = req.session.user;
+        if (user.counter_access === 'cs1') return res.redirect('/cs1');
+        if (user.counter_access === 'cs2') return res.redirect('/cs2');
+        if (user.counter_access === 't1') return res.redirect('/teller1');
+        if (user.counter_access === 't2') return res.redirect('/teller2');
+        return res.redirect('/admin');
+    }
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
