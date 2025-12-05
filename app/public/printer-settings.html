@@ -47,17 +47,17 @@
         <form id="printerForm">
             <div class="form-group">
                 <label for="title">Judul Struk:</label>
-                <input type="text" id="title" name="title" placeholder="BTN Syariah" required>
+                <input type="text" id="title" name="title" readonly placeholder="BTN Syariah" required>
             </div>
 
             <div class="form-group">
                 <label for="address">Alamat:</label>
-                <input type="text" id="address" name="address" placeholder="Jl. abc  d No 00 Jakarta Selatan" required>
+                <input type="text" id="address" readonly name="address" placeholder="Jl. abc  d No 00 Jakarta Selatan" required>
             </div>
 
             <div class="form-group">
                 <label for="footer_note">Catatan Footer (Opsional):</label>
-                <textarea id="footer_note" name="footer_note" placeholder="Terima kasih"></textarea>
+                <textarea id="footer_note"  name="footer_note" placeholder="Terima kasih"></textarea>
             </div>
 
             <div class="form-group">
@@ -76,15 +76,15 @@
                 <div class="help-text">Print otomatis ke thermal printer USB (server-side)</div>
             </div>
 
-            <div class="form-group">
+            <!-- <div class="form-group">
                 <label>Deteksi Printer USB:</label>
                 <button type="button" class="btn btn-primary" style="background: #17a2b8; width: 100%;" onclick="detectPrinters()">🔍 Deteksi Printer USB</button>
                 <div id="printerList" style="margin-top: 10px; display: none;"></div>
-            </div>
+            </div> -->
 
             <div style="display: flex; gap: 15px;">
                 <button type="submit" class="btn btn-primary" style="flex: 1;">💾 Simpan Pengaturan</button>
-                <button type="button" class="btn btn-primary" style="flex: 1; background: #28a745;" onclick="testPrint()">🖨️ Test Print</button>
+                <!-- <button type="button" class="btn btn-primary" style="flex: 1; background: #28a745;" onclick="testPrint()">🖨️ Test Print</button> -->
             </div>
         </form>
     </div>

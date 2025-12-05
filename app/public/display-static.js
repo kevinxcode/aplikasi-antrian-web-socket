@@ -1,32 +1,84 @@
-// Fungsi untuk memutar suara
-function playSound(number, counter) {
-    const utterance = new SpeechSynthesisUtterance();
-    utterance.text = `Nomor antrian ${number}, silakan menuju loket ${counter}`;
-    utterance.lang = 'id-ID';
-    utterance.rate = 0.9;
-    utterance.pitch = 1;
-    utterance.volume = 1;
-    
+// Pre-load voices
+let selectedVoice = null;
+let audioEnabled = false;
+
+function loadVoices() {
     const voices = speechSynthesis.getVoices();
-    const indonesianVoice = voices.find(voice => 
-        voice.lang === 'id-ID' || 
-        voice.lang === 'id_ID' || 
-        voice.name.includes('Indonesia')
-    );
-    
-    if (indonesianVoice) {
-        utterance.voice = indonesianVoice;
+    if (voices.length > 0) {
+        selectedVoice = voices.find(v => v.lang.includes('id')) || voices[0];
     }
-    
-    speechSynthesis.speak(utterance);
 }
 
-// Load voices
-speechSynthesis.getVoices();
-if (speechSynthesis.onvoiceschanged !== undefined) {
-    speechSynthesis.onvoiceschanged = () => {
-        speechSynthesis.getVoices();
+loadVoices();
+speechSynthesis.onvoiceschanged = loadVoices;
+
+// Try auto-enable audio, show button if blocked
+window.addEventListener('load', () => {
+    const testUtterance = new SpeechSynthesisUtterance('');
+    
+    testUtterance.onstart = () => {
+        audioEnabled = true;
+        console.log('Audio auto-enabled');
     };
+    
+    testUtterance.onerror = () => {
+        showEnableButton();
+    };
+    
+    speechSynthesis.speak(testUtterance);
+    
+    // Fallback: show button after 1 second if audio not enabled
+    setTimeout(() => {
+        if (!audioEnabled) {
+            showEnableButton();
+        }
+    }, 1000);
+});
+
+function showEnableButton() {
+    const btn = document.createElement('button');
+    btn.textContent = '🔊 Aktifkan Suara';
+    btn.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; padding: 15px 30px; background: #28a745; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); animation: pulse 2s infinite;';
+    btn.onclick = () => {
+        audioEnabled = true;
+        speechSynthesis.speak(new SpeechSynthesisUtterance('Suara aktif'));
+        btn.remove();
+    };
+    
+    const style = document.createElement('style');
+    style.textContent = '@keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }';
+    document.head.appendChild(style);
+    
+    document.body.appendChild(btn);
+}
+
+// Fungsi untuk memutar suara
+function playSound(number, counter) {
+    // Auto-enable jika belum aktif (untuk kasus lupa klik)
+    if (!audioEnabled) {
+        audioEnabled = true;
+        const btn = document.querySelector('button');
+        if (btn) btn.remove();
+    }
+    
+    setTimeout(() => {
+        if (speechSynthesis.speaking) {
+            speechSynthesis.cancel();
+        }
+        
+        setTimeout(() => {
+            const text = `Nomor antrian ${number}, silakan menuju loket ${counter}`;
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'id-ID';
+            utterance.rate = 0.95;
+            utterance.volume = 1;
+            
+            if (selectedVoice) utterance.voice = selectedVoice;
+            
+            speechSynthesis.speak(utterance);
+        }, 100);
+    }, 50);
 }
 
 // WebSocket connection
@@ -45,27 +97,7 @@ socket.on('queueUpdated', (data) => {
     }
 });
 
-// Fungsi untuk fetch data antrian (fallback)
-async function fetchQueueData() {
-    try {
-        const response = await fetch('/api/queue');
-        const data = await response.json();
-        
-        document.getElementById('cs1').textContent = data.cs1;
-        document.getElementById('cs2').textContent = data.cs2;
-        document.getElementById('t1').textContent = data.t1;
-        document.getElementById('t2').textContent = data.t2;
-        
-    } catch (error) {
-        console.error('Error fetching queue data:', error);
-    }
-}
-
-// Fetch data pertama kali
-fetchQueueData();
-
-// Fetch data setiap 3 detik sebagai fallback
-setInterval(fetchQueueData, 3000);
+// Initial load via WebSocket (no polling needed)
 
 // Load display settings
 async function loadDisplaySettings() {

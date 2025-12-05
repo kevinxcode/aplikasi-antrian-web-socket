@@ -79,9 +79,12 @@
             </div>
         </div>
         
-        <div class="action-buttons">
-            <button class="btn-primary" onclick="callNext()">
+        <div class="action-buttons" style="display: flex; gap: 10px;">
+            <button class="btn-primary" onclick="callNext()" style="flex: 1;">
                 📢 Panggil Antrian Berikutnya
+            </button>
+            <button class="btn-warning" onclick="testSound()" style="background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%); padding: 15px 20px; flex: 0 0 auto;">
+                🔊
             </button>
         </div>
         
@@ -431,6 +434,24 @@
             setTimeout(() => {
                 document.getElementById('recallNumber').style.background = 'white';
             }, 500);
+        }
+        
+        function testSound() {
+            const counterNames = {
+                'cs1': 'CS 1',
+                'cs2': 'CS 2',
+                't1': 'Teller 1',
+                't2': 'Teller 2'
+            };
+            
+            const currentNum = document.getElementById('currentNumber').textContent;
+            
+            socket.emit('testSound', {
+                number: currentNum !== '000' ? currentNum : 'A001',
+                counter: counterNames[myCounter]
+            });
+            
+            alert('Test suara dikirim ke display!');
         }
     </script>
 </body>

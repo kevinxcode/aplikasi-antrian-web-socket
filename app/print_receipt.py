@@ -18,12 +18,18 @@ if os.path.exists(settings_file):
 else:
     settings = {
         'title': 'BTN Syariah',
-        'address': 'Jl. Sopo Del No 56 Jakarta Selatan',
-        'footer': 'Terima kasih'
+        'address': 'Jl. abc d No 00 Jakarta Selatan',
+        'footer': 'Terima kasih',
+        'paper_size': '58mm'
     }
 
 service_type = 'CUSTOMER SERVICE' if queue_type == 'cs' else 'TELLER SERVICE'
 date_str = datetime.now().strftime('%d/%m/%Y %H:%M')
+
+# Auto adjust line width based on paper size
+paper_size = settings.get('paper_size', '58mm')
+line_width = 48 if paper_size == '80mm' else 32
+line = '-' * line_width
 
 # ESC/POS commands
 data = b'\x1B\x40'  # Init
@@ -31,12 +37,13 @@ data += b'\x1B\x61\x01'  # Center
 data += b'\x1B\x21\x30\x1B\x45\x01' + settings['title'].encode('utf-8') + b'\n'
 data += b'\x1B\x45\x00\x1B\x21\x00'
 data += settings['address'].encode('utf-8') + b'\n'
-data += b'--------------------------------\n'
+data += line.encode('utf-8') + b'\n'
 data += b'Nomor Antrian\n\n'
-data += b'\x1B\x21\x30\x1B\x45\x01' + queue_number.encode('utf-8') + b'\n'
-data += b'\x1B\x45\x00\x1B\x21\x00\n' + service_type.encode('utf-8') + b'\n\n'
+data += b'\x1B\x21\x38\x1B\x45\x01' + queue_number.encode('utf-8') + b'\n'
+data += b'\x1B\x45\x00\x1B\x21\x00\n'
+data += b'\x1B\x45\x01' + service_type.encode('utf-8') + b'\x1B\x45\x00\n\n'
 data += date_str.encode('utf-8') + b'\n'
-data += b'--------------------------------\n'
+data += line.encode('utf-8') + b'\n'
 if settings.get('footer'):
     data += settings['footer'].encode('utf-8') + b'\n'
 data += b'\n\n\n'

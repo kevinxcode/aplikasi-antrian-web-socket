@@ -183,9 +183,19 @@ async function initDB() {
         await client.query(`UPDATE users SET counter_access = 't1' WHERE username = 'teller1' AND counter_access IS NULL`);
         await client.query(`UPDATE users SET counter_access = 't2' WHERE username = 'teller2' AND counter_access IS NULL`);
 
-        console.log('Database initialized successfully');
+        // Add indexes for performance
+        await client.query('CREATE INDEX IF NOT EXISTS idx_queue_created_at ON queue_transactions(created_at)');
+        await client.query('CREATE INDEX IF NOT EXISTS idx_queue_type ON queue_transactions(queue_type)');
+        await client.query('CREATE INDEX IF NOT EXISTS idx_queue_status ON queue_transactions(status)');
+        await client.query('CREATE INDEX IF NOT EXISTS idx_queue_counter ON queue_transactions(counter)');
+        await client.query('CREATE INDEX IF NOT EXISTS idx_queue_called_at ON queue_transactions(called_at)');
+        await client.query('CREATE INDEX IF NOT EXISTS idx_queue_type_status_date ON queue_transactions(queue_type, status, created_at)');
+        
+        console.log('Database initialized successfully with indexes');
     } catch (error) {
-        console.error('Database initialization error:', error);
+        console.error('[DB INIT ERROR]', error.message);
+        console.error('Stack:', error.stack);
+        throw error;
     } finally {
         client.release();
     }

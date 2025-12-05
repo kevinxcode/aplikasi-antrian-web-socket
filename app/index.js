@@ -8,7 +8,29 @@ const crypto = require('crypto');
 const fs = require('fs');
 const escpos = require('escpos');
 escpos.USB = require('escpos-usb');
+const rateLimit = require('express-rate-limit');
+const compression = require('compression');
 const { pool, initDB } = require('./db');
+
+// Error logging utility
+function logError(context, error, additionalInfo = {}) {
+    const timestamp = new Date().toISOString();
+    const errorLog = {
+        timestamp,
+        context,
+        error: error.message || error,
+        stack: error.stack,
+        ...additionalInfo
+    };
+    console.error(`[${timestamp}] ERROR in ${context}:`, JSON.stringify(errorLog, null, 2));
+    
+    try {
+        const logFile = path.join(__dirname, 'error.log');
+        fs.appendFileSync(logFile, JSON.stringify(errorLog) + '\n');
+    } catch (e) {
+        console.error('Failed to write error log:', e.message);
+    }
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -69,7 +91,22 @@ function resetDailyQueue() {
     console.log('Auto-reset: Queue reset completed, ready for new day');
 }
 
+// Rate limiting
+const limiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute
+    max: 100, // 100 requests per minute
+    message: { success: false, message: 'Terlalu banyak request, coba lagi nanti' }
+});
+
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // 5 login attempts
+    message: { success: false, message: 'Terlalu banyak percobaan login, coba lagi dalam 15 menit' }
+});
+
 // Middleware
+app.use(compression()); // Gzip compression
+app.use(limiter);
 app.use(express.static('public'));
 app.use('/certs', express.static(path.join(__dirname, 'certs')));
 app.use(express.json({ limit: '10mb' }));
@@ -212,9 +249,29 @@ async function loadLastQueueNumbers() {
         
         console.log('Queue numbers, counter displays, and waiting queues loaded from database');
     } catch (error) {
-        console.error('Error loading queue numbers:', error);
+        logError('loadLastQueueNumbers', error, { today });
     }
 }
+
+// Health check endpoint
+app.get('/health', async (req, res) => {
+    try {
+        await pool.query('SELECT 1');
+        res.json({ 
+            status: 'healthy', 
+            timestamp: new Date().toISOString(),
+            uptime: process.uptime(),
+            database: 'connected'
+        });
+    } catch (error) {
+        res.status(503).json({ 
+            status: 'unhealthy', 
+            timestamp: new Date().toISOString(),
+            database: 'disconnected',
+            error: error.message
+        });
+    }
+});
 
 // Routes
 app.get('/', (req, res) => {
@@ -290,7 +347,7 @@ app.get('/default-settings', requireAuth, requireRole('admin'), (req, res) => {
 });
 
 // API Routes
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', authLimiter, async (req, res) => {
     const { username, password } = req.body;
     
     try {
@@ -324,7 +381,7 @@ app.post('/api/login', async (req, res) => {
         
         res.json({ success: true, redirect });
     } catch (error) {
-        console.error('Login error:', error);
+        logError('API /api/login', error, { username });
         res.json({ success: false, message: 'Login gagal' });
     }
 });
@@ -351,7 +408,7 @@ app.post('/api/update-profile', requireAuth, async (req, res) => {
         req.session.user.full_name = full_name;
         res.json({ success: true, message: 'Profil berhasil diupdate' });
     } catch (error) {
-        console.error('Update profile error:', error);
+        logError('API /api/update-profile', error, { userId });
         res.json({ success: false, message: 'Gagal update profil' });
     }
 });
@@ -362,7 +419,7 @@ app.get('/api/users', requireAuth, requireRole('admin'), async (req, res) => {
         const result = await pool.query('SELECT id, username, role, full_name, counter_access, created_at FROM users ORDER BY created_at DESC');
         res.json({ success: true, users: result.rows });
     } catch (error) {
-        console.error('Get users error:', error);
+        logError('API /api/users', error);
         res.json({ success: false, message: 'Gagal mengambil data user' });
     }
 });
@@ -386,7 +443,7 @@ app.post('/api/add-user', requireAuth, requireRole('admin'), async (req, res) =>
         if (error.code === '23505') {
             res.json({ success: false, message: 'Username sudah digunakan' });
         } else {
-            console.error('Add user error:', error);
+            logError('API /api/add-user', error, { username, role });
             res.json({ success: false, message: 'Gagal menambahkan user' });
         }
     }
@@ -418,7 +475,7 @@ app.post('/api/update-user', requireAuth, requireRole('admin'), async (req, res)
         if (error.code === '23505') {
             res.json({ success: false, message: 'Username sudah digunakan' });
         } else {
-            console.error('Update user error:', error);
+            logError('API /api/update-user', error, { userId, username });
             res.json({ success: false, message: 'Gagal update user' });
         }
     }
@@ -436,7 +493,7 @@ app.post('/api/delete-user', requireAuth, requireRole('admin'), async (req, res)
         await pool.query('DELETE FROM users WHERE id = $1', [userId]);
         res.json({ success: true, message: 'User berhasil dihapus' });
     } catch (error) {
-        console.error('Delete user error:', error);
+        logError('API /api/delete-user', error, { userId });
         res.json({ success: false, message: 'Gagal menghapus user' });
     }
 });
@@ -451,7 +508,7 @@ app.get('/api/display-settings', async (req, res) => {
             res.json({ success: true, settings: { marquee_text: 'Selamat Datang di Sistem Antrian', logo_base64: null, left_image_base64: null } });
         }
     } catch (error) {
-        console.error('Get display settings error:', error);
+        logError('API /api/display-settings GET', error);
         res.json({ success: false, message: 'Gagal mengambil pengaturan' });
     }
 });
@@ -469,7 +526,7 @@ app.post('/api/display-settings', requireAuth, requireRole('admin'), async (req,
         io.emit('displaySettingsUpdated', { marquee_text, logo_base64, left_image_base64 });
         res.json({ success: true, message: 'Pengaturan berhasil diupdate' });
     } catch (error) {
-        console.error('Update display settings error:', error);
+        logError('API /api/display-settings POST', error, { userId });
         res.json({ success: false, message: 'Gagal update pengaturan' });
     }
 });
@@ -489,7 +546,7 @@ app.post('/api/upload-image', requireAuth, requireRole('admin'), async (req, res
         io.emit('slidesUpdated');
         res.json({ success: true, message: 'Gambar berhasil diupload' });
     } catch (error) {
-        console.error('Upload image error:', error);
+        logError('API /api/upload-image', error);
         res.json({ success: false, message: 'Gagal upload gambar' });
     }
 });
@@ -503,7 +560,7 @@ app.post('/api/delete-image', requireAuth, requireRole('admin'), async (req, res
         io.emit('slidesUpdated');
         res.json({ success: true, message: 'Gambar berhasil dihapus' });
     } catch (error) {
-        console.error('Delete image error:', error);
+        logError('API /api/delete-image', error, { imageId });
         res.json({ success: false, message: 'Gagal hapus gambar' });
     }
 });
@@ -513,7 +570,7 @@ app.get('/api/image-slides', async (req, res) => {
         const result = await pool.query('SELECT * FROM image_slides ORDER BY display_order ASC, id ASC');
         res.json({ success: true, slides: result.rows });
     } catch (error) {
-        console.error('Get image slides error:', error);
+        logError('API /api/image-slides', error);
         res.json({ success: false, message: 'Gagal mengambil gambar' });
     }
 });
@@ -523,7 +580,7 @@ app.get('/api/premium-status', async (req, res) => {
         const result = await pool.query('SELECT is_activated FROM premium_activation LIMIT 1');
         res.json({ success: true, is_activated: result.rows[0]?.is_activated || false });
     } catch (error) {
-        console.error('Get premium status error:', error);
+        logError('API /api/premium-status', error);
         res.json({ success: false, message: 'Gagal mengambil status premium' });
     }
 });
@@ -552,7 +609,7 @@ app.post('/api/activate-premium', requireAuth, requireRole('admin'), async (req,
         io.emit('premiumActivated');
         res.json({ success: true, message: 'Premium berhasil diaktifkan' });
     } catch (error) {
-        console.error('Activate premium error:', error);
+        logError('API /api/activate-premium', error);
         res.json({ success: false, message: 'Gagal aktivasi premium' });
     }
 });
@@ -679,7 +736,7 @@ app.post('/api/add-queue', async (req, res) => {
             printError
         });
     } catch (error) {
-        console.error('Add queue error:', error);
+        logError('API /api/add-queue', error, { type, name });
         res.json({ success: false, message: 'Gagal menambah antrian' });
     }
 });
@@ -837,7 +894,7 @@ app.get('/api/queue-status', async (req, res) => {
             avgServiceTime: avgServiceTime
         });
     } catch (error) {
-        console.error('Queue status error:', error);
+        logError('API /api/queue-status', error);
         res.json({
             queueCS: queueCS,
             queueTeller: queueTeller,
@@ -869,7 +926,7 @@ app.post('/api/reload-queue', requireAuth, requireRole('admin'), async (req, res
             nextTeller: `B${String(nextNumberTeller).padStart(3, '0')}`
         });
     } catch (error) {
-        console.error('Reload queue error:', error);
+        logError('API /api/reload-queue', error);
         res.json({ success: false, message: 'Gagal reload data' });
     }
 });
@@ -917,7 +974,7 @@ app.get('/api/transactions', requireAuth, async (req, res) => {
         const result = await pool.query(query, params);
         res.json({ success: true, transactions: result.rows });
     } catch (error) {
-        console.error('Database error:', error);
+        logError('API /api/transactions', error);
         res.json({ success: false, message: 'Gagal mengambil data' });
     }
 });
@@ -997,6 +1054,7 @@ app.get('/api/usb-printers', (req, res) => {
         
         res.json({ success: true, printers });
     } catch (error) {
+        logError('GET /api/usb-printers', error);
         console.error('❌ USB detection error:', error.message);
         res.json({ success: false, message: 'Error: ' + error.message, printers: [] });
     }
@@ -1054,7 +1112,7 @@ app.post('/api/print-usb', async (req, res) => {
             res.json({ success: true, message: 'Print berhasil' });
         });
     } catch (error) {
-        console.error('Print USB error:', error);
+        logError('POST /api/print-usb', error, { queueNumber, queueType });
         res.json({ success: false, message: 'Gagal print: ' + error.message });
     }
 });
@@ -1075,7 +1133,7 @@ app.get('/api/printer-settings', async (req, res) => {
             } });
         }
     } catch (error) {
-        console.error('Get printer settings error:', error);
+        logError('API /api/printer-settings GET', error);
         res.json({ success: false, message: 'Gagal mengambil pengaturan printer' });
     }
 });
@@ -1091,7 +1149,7 @@ app.post('/api/printer-settings', requireAuth, requireRole('admin'), async (req,
         );
         res.json({ success: true, message: 'Pengaturan printer berhasil diupdate' });
     } catch (error) {
-        console.error('Update printer settings error:', error);
+        logError('API /api/printer-settings POST', error);
         res.json({ success: false, message: 'Gagal update pengaturan printer' });
     }
 });
@@ -1134,8 +1192,8 @@ app.get('/print-receipt/:number', async (req, res) => {
         const settings = settingsResult.rows[0] || {
             title: 'BTN Syariah',
             address: 'Jl. ABC DEF No 00 Jakarta Selatan',
-            footer_note: '',
-            paper_width: '58mm'
+            footer: '',
+            paper_size: '58mm'
         };
         
         // Get queue data
@@ -1171,6 +1229,7 @@ app.get('/print-receipt/:number', async (req, res) => {
         
         const serviceType = queueData.queue_type === 'cs' ? 'CUSTOMER SERVICE' : 'TELLER SERVICE';
         
+        const paperSize = settings.paper_size || '58mm';
         const html = `
 <!DOCTYPE html>
 <html>
@@ -1180,17 +1239,17 @@ app.get('/print-receipt/:number', async (req, res) => {
     <style>
         @media print {
             @page {
-                size: ${settings.paper_width === '80mm' ? '80mm' : '58mm'} auto;
+                size: ${paperSize} auto;
                 margin: 0;
             }
             body { margin: 0; }
         }
         body {
             font-family: 'Courier New', monospace;
-            font-size: ${settings.paper_width === '80mm' ? '12px' : '10px'};
+            font-size: ${paperSize === '80mm' ? '12px' : '10px'};
             line-height: 1.2;
             text-align: center;
-            width: ${settings.paper_width === '80mm' ? '80mm' : '58mm'};
+            width: ${paperSize};
             margin: 0 auto;
             padding: 5mm;
         }
@@ -1199,7 +1258,7 @@ app.get('/print-receipt/:number', async (req, res) => {
         .line { border-top: 1px dashed #000; margin: 5px 0; }
         .queue-title { margin: 5px 0; }
         .queue-number {
-            font-size: ${settings.paper_width === '80mm' ? '24px' : '20px'};
+            font-size: ${paperSize === '80mm' ? '24px' : '20px'};
             font-weight: bold;
             margin: 10px 0;
         }
@@ -1216,7 +1275,7 @@ app.get('/print-receipt/:number', async (req, res) => {
     <div class="queue-number">${number}</div>
     <div class="service-type">${serviceType}</div>
     <div class="datetime">${dateStr}</div>
-    ${settings.footer_note ? `<div class="footer">${settings.footer_note}</div>` : ''}
+    ${settings.footer ? `<div class="footer">${settings.footer}</div>` : ''}
     <div class="line"></div>
     
     <script>
@@ -1244,7 +1303,7 @@ app.get('/print-receipt/:number', async (req, res) => {
         
         res.send(html);
     } catch (error) {
-        console.error('Print receipt error:', error);
+        logError('GET /print-receipt/:number', error, { number });
         res.status(500).send('Error generating receipt');
     }
 });
@@ -1305,7 +1364,7 @@ app.get('/api/export-transactions', requireAuth, requireRole('admin'), async (re
         res.setHeader('Content-Disposition', `attachment; filename=antrian-${new Date().toISOString().split('T')[0]}.csv`);
         res.send(csv);
     } catch (error) {
-        console.error('Export error:', error);
+        logError('API /api/export-transactions', error);
         res.status(500).json({ success: false, message: 'Gagal export data' });
     }
 });
@@ -1322,6 +1381,17 @@ io.on('connection', (socket) => {
         totalTeller: queueTeller.length
     });
     
+    socket.on('testSound', (data) => {
+        io.emit('queueUpdated', {
+            queueCS: queueCS,
+            queueTeller: queueTeller,
+            counters: counters,
+            totalCS: queueCS.length,
+            totalTeller: queueTeller.length,
+            called: { number: data.number, counterName: data.counter }
+        });
+    });
+    
     socket.on('disconnect', () => {
         console.log('Client disconnected:', socket.id);
     });
@@ -1331,6 +1401,19 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Current date: ${new Date().toISOString().split('T')[0]}`);
+});
+
+// Global error handlers
+process.on('uncaughtException', (error) => {
+    logError('uncaughtException', error);
+    console.error('UNCAUGHT EXCEPTION! Shutting down...');
+    process.exit(1);
+});
+
+process.on('unhandledRejection', (error) => {
+    logError('unhandledRejection', error);
+    console.error('UNHANDLED REJECTION! Shutting down...');
+    server.close(() => process.exit(1));
 });
 
 module.exports = { app, server, io };
