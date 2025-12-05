@@ -12,6 +12,9 @@ const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const { pool, initDB } = require('./db');
 
+// File Integrity Protection
+const integrityCheck = require('./integrity-check');
+
 // Error logging utility
 function logError(context, error, additionalInfo = {}) {
     const timestamp = new Date().toISOString();
@@ -45,6 +48,8 @@ const io = socketIo(server, {
 initDB().then(() => {
     loadLastQueueNumbers();
     startDailyReset();
+}).catch(err => {
+    console.error('Database init error:', err);
 });
 
 // Auto-reset queue every day at 00:00

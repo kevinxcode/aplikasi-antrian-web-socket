@@ -4,9 +4,12 @@
   "description": "Sistem Antrian dengan WebSocket",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node integrity-check.js && node index.js",
     "start-with-php": "concurrently \"node index.js\" \"php -S localhost:3001\"",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "protect": "node integrity-check.js init",
+    "verify": "node integrity-check.js",
+    "change-password": "node change-password.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
