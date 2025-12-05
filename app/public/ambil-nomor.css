@@ -113,6 +113,12 @@ body {
     transform: translateY(-2px);
 }
 
+.queue-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
 .service-label {
     font-size: 65px;
     font-weight: bold;
@@ -200,6 +206,236 @@ body {
 .footer-logo {
     height: 45px;
     filter: brightness(0) invert(1);
+}
+
+/* RESPONSIVE DESIGN */
+@media (max-width: 1366px) {
+    .right-section-wrapper img {
+        width: 180px !important;
+    }
+    .queue-button {
+        height: 30%;
+    }
+    .service-label {
+        font-size: 55px;
+    }
+}
+
+@media (max-width: 1024px) {
+    .left-section {
+        width: 35%;
+    }
+    .right-section-wrapper {
+        width: 65%;
+        padding: 15px 20px;
+    }
+    .right-section-wrapper img {
+        width: 150px !important;
+        margin-bottom: 15px !important;
+    }
+    .queue-button {
+        border-radius: 15px;
+        padding: 20px 15px;
+    }
+    .service-label {
+        font-size: 45px;
+    }
+    .right-section {
+        gap: 20px;
+    }
+}
+
+@media (max-height: 580px) {
+    .container {
+        height: calc(100vh - 30px);
+    }
+    .right-section-wrapper {
+        padding: 8px 15px;
+    }
+    .right-section-wrapper img {
+        width: 100px !important;
+        margin-bottom: 5px !important;
+    }
+    .right-section {
+        gap: 12px;
+    }
+    .queue-button {
+        border-radius: 12px;
+        padding: 15px 10px;
+        height: 30%;
+    }
+    .service-label {
+        font-size: 28px;
+    }
+    .footer {
+        height: 30px;
+    }
+    .datetime-box {
+        min-width: 75px;
+        padding: 1px 5px;
+        top: -7px;
+        left: 3px;
+        border-radius: 5px;
+        gap: 1px;
+    }
+    .date {
+        font-size: 7px;
+    }
+    .clock {
+        font-size: 11px;
+    }
+    .marquee {
+        margin-left: 85px;
+    }
+    .marquee span {
+        font-size: 10px;
+    }
+    .footer-right {
+        padding: 0 10px;
+    }
+    .footer-logo {
+        height: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        flex-direction: column;
+        height: calc(100vh - 30px);
+    }
+    .left-section {
+        width: 100%;
+        height: 30%;
+    }
+    .slideshow-container img {
+        object-fit: cover !important;
+        width: 100% !important;
+        height: 100% !important;
+    }
+    .right-section-wrapper {
+        width: 100%;
+        height: 70%;
+        padding: 10px 15px;
+        align-items: center;
+    }
+    .right-section-wrapper img {
+        width: 120px !important;
+        margin-bottom: 10px !important;
+    }
+    .right-section {
+        gap: 15px;
+    }
+    .queue-button {
+        width: 90%;
+        height: 40%;
+        border-radius: 15px;
+    }
+    .queue-button::after {
+        width: 120px;
+        height: 120px;
+    }
+    .service-label {
+        font-size: 35px;
+    }
+    .footer {
+        height: 30px;
+    }
+    .datetime-box {
+        min-width: 75px;
+        padding: 1px 5px;
+        top: -7px;
+        left: 3px;
+        border-radius: 5px;
+        gap: 1px;
+    }
+    .date {
+        font-size: 7px;
+    }
+    .clock {
+        font-size: 11px;
+    }
+    .marquee {
+        margin-left: 85px;
+    }
+    .marquee span {
+        font-size: 10px;
+        animation: marquee 15s linear infinite;
+    }
+    .footer-right {
+        padding: 0 10px;
+    }
+    .footer-logo {
+        height: 25px;
+    }
+    .modal-content {
+        padding: 40px 50px;
+    }
+    .modal-content p {
+        font-size: 18px;
+    }
+    .modal-content h2 {
+        font-size: 80px;
+    }
+}
+
+@media (max-width: 480px) {
+    .right-section-wrapper img {
+        width: 100px !important;
+        margin-bottom: 8px !important;
+    }
+    .queue-button {
+        width: 95%;
+        height: 38%;
+        border-radius: 12px;
+        padding: 15px 10px;
+    }
+    .queue-button::after {
+        width: 80px;
+        height: 80px;
+    }
+    .service-label {
+        font-size: 24px;
+    }
+    .footer {
+        height: 30px;
+    }
+    .datetime-box {
+        min-width: 70px;
+        padding: 1px 4px;
+        top: -6px;
+        left: 2px;
+        border-radius: 4px;
+        gap: 0px;
+    }
+    .date {
+        font-size: 7px;
+    }
+    .clock {
+        font-size: 10px;
+    }
+    .marquee {
+        margin-left: 78px;
+        width: calc(100% - 78px);
+    }
+    .marquee span {
+        font-size: 9px;
+        animation: marquee 12s linear infinite;
+    }
+    .footer-right {
+        padding: 0 8px;
+    }
+    .footer-logo {
+        height: 20px;
+    }
+    .modal-content {
+        padding: 30px 40px;
+    }
+    .modal-content p {
+        font-size: 16px;
+    }
+    .modal-content h2 {
+        font-size: 60px;
+    }
 }
 
 .modal {

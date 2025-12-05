@@ -62,6 +62,18 @@ async function loadDisplaySettings() {
 
 loadDisplaySettings();
 
+const socket = io();
+
+socket.on('disconnect', () => {
+    document.getElementById('disconnectBanner').style.display = 'block';
+    document.querySelectorAll('.queue-button').forEach(btn => btn.disabled = true);
+});
+
+socket.on('connect', () => {
+    document.getElementById('disconnectBanner').style.display = 'none';
+    document.querySelectorAll('.queue-button').forEach(btn => btn.disabled = false);
+});
+
 async function ambilNomor(type) {
     try {
         const response = await fetch('/api/add-queue', {

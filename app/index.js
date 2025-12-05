@@ -575,6 +575,16 @@ app.get('/api/image-slides', async (req, res) => {
     }
 });
 
+app.get('/api/slides', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT id, image_data as image_base64, display_order FROM image_slides ORDER BY display_order ASC, id ASC');
+        res.json({ success: true, slides: result.rows });
+    } catch (error) {
+        logError('API /api/slides', error);
+        res.json({ success: false, message: 'Gagal mengambil slides' });
+    }
+});
+
 app.get('/api/premium-status', async (req, res) => {
     try {
         const result = await pool.query('SELECT is_activated FROM premium_activation LIMIT 1');

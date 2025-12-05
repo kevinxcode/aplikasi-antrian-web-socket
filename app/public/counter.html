@@ -22,6 +22,7 @@
         .action-buttons { display: grid; gap: 10px; margin-bottom: 20px; }
         button { padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; color: white; transition: all 0.3s; touch-action: manipulation; }
         button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
         .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
         .btn-warning { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
         .btn-danger { background: #dc3545; }
@@ -57,6 +58,7 @@
     </style>
 </head>
 <body>
+    <div id="disconnectBanner" style="display: none; position: fixed; top: 0; left: 0; width: 100%; background: #ff4444; color: white; text-align: center; padding: 12px; font-weight: bold; font-size: 18px; z-index: 9999; box-shadow: 0 2px 10px rgba(0,0,0,0.3);">⚠️ Koneksi terputus - Mencoba menyambung kembali...</div>
     <div class="container">
         <div class="header">
             <div class="counter-badge" id="counterName">Loading...</div>
@@ -182,6 +184,16 @@
         }
         
         const socket = io();
+        
+        socket.on('disconnect', () => {
+            document.getElementById('disconnectBanner').style.display = 'block';
+            document.querySelectorAll('button').forEach(btn => btn.disabled = true);
+        });
+        
+        socket.on('connect', () => {
+            document.getElementById('disconnectBanner').style.display = 'none';
+            document.querySelectorAll('button').forEach(btn => btn.disabled = false);
+        });
         
         socket.on('queueUpdated', (data) => {
             updateDisplay(data);

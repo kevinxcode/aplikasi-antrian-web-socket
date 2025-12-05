@@ -106,7 +106,10 @@ socket.on('queueUpdated', (data) => {
     }
 });
 
-// Initial load via WebSocket (no polling needed)
+// Slideshow variables
+let slides = [];
+let currentSlide = 0;
+let slideInterval = null;
 
 // Load display settings
 async function loadDisplaySettings() {
@@ -119,46 +122,69 @@ async function loadDisplaySettings() {
                 document.getElementById('marqueeText').textContent = result.settings.marquee_text;
             }
             if (result.settings.logo_base64) {
-                loadImage('headerLogo', 'logoLoader', result.settings.logo_base64);
-            } else {
-                hideLoader('logoLoader');
-            }
-            if (result.settings.left_image_base64) {
-                loadImage('bgImage', 'bgLoader', result.settings.left_image_base64);
-            } else {
-                hideLoader('bgLoader');
+                document.querySelector('.header-logo img').src = result.settings.logo_base64;
             }
         }
     } catch (error) {
         console.error('Error loading display settings:', error);
-        hideLoader('logoLoader');
-        hideLoader('bgLoader');
     }
 }
 
-function loadImage(imgId, loaderId, src) {
-    const img = document.getElementById(imgId);
-    const loader = document.getElementById(loaderId);
-    
-    img.onload = () => {
-        loader.style.display = 'none';
-        img.style.display = 'block';
-    };
-    
-    img.onerror = () => {
-        loader.style.display = 'none';
-    };
-    
-    img.src = src;
+async function loadSlides() {
+    try {
+        const response = await fetch('/api/slides');
+        const result = await response.json();
+        
+        if (result.success && result.slides && result.slides.length > 0) {
+            slides = result.slides;
+            const container = document.querySelector('.slideshow-container');
+            container.innerHTML = '';
+            
+            slides.forEach((slide, index) => {
+                const img = document.createElement('img');
+                img.src = slide.image_base64;
+                img.className = index === 0 ? 'slide active' : 'slide';
+                img.alt = `Slide ${index + 1}`;
+                container.appendChild(img);
+            });
+            
+            if (slideInterval) clearInterval(slideInterval);
+            if (slides.length > 1) {
+                currentSlide = 0;
+                slideInterval = setInterval(nextSlide, 5000);
+            }
+        }
+    } catch (error) {
+        console.error('Error loading slides:', error);
+    }
 }
 
-function hideLoader(loaderId) {
-    const loader = document.getElementById(loaderId);
-    if (loader) loader.style.display = 'none';
+function nextSlide() {
+    const slideElements = document.querySelectorAll('.slide');
+    if (slideElements.length === 0) return;
+    
+    slideElements[currentSlide].classList.remove('active');
+    currentSlide = (currentSlide + 1) % slideElements.length;
+    slideElements[currentSlide].classList.add('active');
 }
 
 // Load settings pertama kali
 loadDisplaySettings();
+loadSlides();
+
+setTimeout(async () => {
+    try {
+        const response = await fetch('/api/premium-status');
+        const result = await response.json();
+        
+        if (result.success && !result.is_activated) {
+            const modal = document.getElementById('premiumModal');
+            modal.style.display = 'flex';
+        }
+    } catch (error) {
+        console.error('Error checking premium status:', error);
+    }
+}, 60000);
 
 // Listen for settings updates
 socket.on('displaySettingsUpdated', (data) => {
@@ -166,13 +192,12 @@ socket.on('displaySettingsUpdated', (data) => {
         document.getElementById('marqueeText').textContent = data.marquee_text;
     }
     if (data.logo_base64) {
-        document.getElementById('logoLoader').style.display = 'block';
-        loadImage('headerLogo', 'logoLoader', data.logo_base64);
+        document.querySelector('.header-logo img').src = data.logo_base64;
     }
-    if (data.left_image_base64) {
-        document.getElementById('bgLoader').style.display = 'block';
-        loadImage('bgImage', 'bgLoader', data.left_image_base64);
-    }
+});
+
+socket.on('slidesUpdated', () => {
+    loadSlides();
 });
 
 // Update waktu real-time

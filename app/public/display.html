@@ -8,14 +8,17 @@
     <link rel="stylesheet" href="display.css">
 </head>
 <body>
+    <div id="disconnectBanner" style="display: none;">⚠️ Koneksi terputus - Mencoba menyambung kembali...</div>
     <div class="container">
         <div class="left-section">
-            <img src="" alt="Background" id="bgImage" style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; object-position: center bottom;">
+            <div class="loader" id="bgLoader"></div>
+            <img src="" alt="Background" id="bgImage" style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; object-position: center bottom; display: none;">
         </div>
         
         <div class="right-section-wrapper">
             <div class="header-logo">
-                <img src="" alt="Logo" id="headerLogo">
+                <div class="loader" id="logoLoader"></div>
+                <img src="" alt="Logo" id="headerLogo" style="display: none;">
             </div>
            
             <div class="right-section">
