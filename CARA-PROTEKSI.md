@@ -14,11 +14,17 @@ Mengatur file menjadi read-only dan membatasi akses modifikasi.
 
 ### Aktifkan Proteksi (Jalankan Sekali)
 
-**Windows:**
+**CMD (Recommended - Password tersembunyi):**
 ```cmd
 protect-files.bat
 ```
-**Password default:** `admin123`
+
+**PowerShell (Password terlihat):**
+```powershell
+.\protect-files.bat
+```
+
+**Password default:** `mypassword123`
 
 ### Verifikasi File (Cek Integritas)
 
@@ -29,22 +35,22 @@ npm run verify
 
 ### Nonaktifkan Proteksi (Jika Anda Ingin Edit)
 
+**CMD (Recommended):**
 ```cmd
 unprotect-files.bat
 ```
-**Password default:** `admin123`
+
+**PowerShell:**
+```powershell
+.\unprotect-files.bat
+```
+
+**Password default:** `mypassword123`
 
 ### Ganti Password
 
-**Cara 1 - Pakai BAT file:**
 ```cmd
 .\change-password.bat
-```
-
-**Cara 2 - Manual:**
-```cmd
-cd app
-npm run change-password
 ```
 
 ---
