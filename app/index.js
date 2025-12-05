@@ -115,7 +115,11 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'antrian-secret-key',
     resave: false,
     saveUninitialized: false,
-    cookie: { maxAge: 24 * 60 * 60 * 1000 }
+    cookie: { 
+        maxAge: 24 * 60 * 60 * 1000,
+        httpOnly: true,
+        secure: false // set true jika pakai HTTPS
+    }
 }));
 
 // Auth middleware
@@ -348,7 +352,7 @@ app.get('/default-settings', requireAuth, requireRole('admin'), (req, res) => {
 
 // API Routes
 app.post('/api/login', authLimiter, async (req, res) => {
-    const { username, password } = req.body;
+    const { username, password, remember } = req.body;
     
     try {
         const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
@@ -371,6 +375,13 @@ app.post('/api/login', authLimiter, async (req, res) => {
             full_name: user.full_name,
             counter_access: user.counter_access
         };
+        
+        // Set cookie expiry based on remember me
+        if (remember) {
+            req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 hari
+        } else {
+            req.session.cookie.maxAge = 24 * 60 * 60 * 1000; // 24 jam
+        }
         
         // Redirect based on counter_access
         let redirect = '/admin';
