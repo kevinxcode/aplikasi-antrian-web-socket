@@ -11,7 +11,8 @@ queue_number = sys.argv[1] if len(sys.argv) > 1 else 'A001'
 queue_type = sys.argv[2] if len(sys.argv) > 2 else 'cs'
 
 # Load settings
-settings_file = os.path.join(os.path.dirname(__file__), 'temp_settings.json')
+import tempfile
+settings_file = os.path.join(tempfile.gettempdir(), 'temp_settings.json')
 if os.path.exists(settings_file):
     with open(settings_file, 'r', encoding='utf-8') as f:
         settings = json.load(f)

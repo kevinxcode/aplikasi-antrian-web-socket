@@ -14,7 +14,8 @@ $settings = [
     'address' => $address,
     'footer' => $footer
 ];
-file_put_contents(__DIR__ . '/temp_settings.json', json_encode($settings));
+$temp_file = sys_get_temp_dir() . '/temp_settings.json';
+file_put_contents($temp_file, json_encode($settings));
 
 // Path ke Python script
 $script_path = __DIR__ . '/print_receipt.py';
@@ -24,7 +25,7 @@ $command = "python \"$script_path\" $queue_number $queue_type 2>&1";
 $output = shell_exec($command);
 
 // Hapus temp file
-@unlink(__DIR__ . '/temp_settings.json');
+@unlink($temp_file);
 
 if (strpos($output, 'Print OK') !== false) {
     echo json_encode([
