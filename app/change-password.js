@@ -1,17 +1,16 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const readline = require('readline');
+const { read } = require('read');
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
+read({ prompt: 'Masukkan password baru: ', silent: true, replace: '*' }, (err, newPassword) => {
+  if (err) {
+    console.error('\n✗ Error:', err.message);
+    process.exit(1);
+  }
 
-rl.question('Masukkan password baru: ', (newPassword) => {
   if (!newPassword || newPassword.trim() === '') {
     console.error('\n✗ Password tidak boleh kosong!');
-    rl.close();
     process.exit(1);
   }
 
@@ -28,6 +27,4 @@ rl.question('Masukkan password baru: ', (newPassword) => {
   
   console.log('\n✓ Password berhasil diganti!');
   console.log(`✓ Password baru: ${newPassword}`);
-  
-  rl.close();
 });

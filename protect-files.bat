@@ -3,6 +3,8 @@ echo ========================================
 echo   FILE PROTECTION SYSTEM
 echo ========================================
 echo.
+echo NOTE: Password akan tersembunyi (****)
+echo.
 echo IMPORTANT: Run as Administrator for full protection
 echo.
 

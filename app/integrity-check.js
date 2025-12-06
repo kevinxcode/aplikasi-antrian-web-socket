@@ -1,8 +1,8 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
-const { verifyPassword } = require('./password-config');
 const { read } = require('read');
+const { verifyPassword } = require('./password-config');
 
 const protectedFiles = {
   'index.js': '',
@@ -61,13 +61,7 @@ function checkIntegrity() {
 
 async function promptPassword(action) {
   return new Promise((resolve, reject) => {
-    read({
-      prompt: `Enter password to ${action}: `,
-      silent: true,
-      replace: '*',
-      input: process.stdin,
-      output: process.stdout
-    }, (err, password) => {
+    read({ prompt: `Enter password to ${action}: `, silent: true, replace: '*' }, (err, password) => {
       if (err) reject(err);
       else resolve(password);
     });

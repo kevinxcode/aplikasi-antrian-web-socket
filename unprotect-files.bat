@@ -3,6 +3,8 @@ echo ========================================
 echo   REMOVE FILE PROTECTION
 echo ========================================
 echo.
+echo NOTE: Password akan tersembunyi (****)
+echo.
 echo If this fails, run emergency-unprotect.bat as Admin first
 echo.
 
