@@ -11,10 +11,8 @@ echo.
 set ROOT_DIR=%~dp0
 set ROOT_DIR=%ROOT_DIR:~0,-1%
 
-cd /d "%ROOT_DIR%\app"
-
 echo [1/4] Verifying password...
-node integrity-check.js unprotect
+node "%ROOT_DIR%\app\integrity-check.js" unprotect
 if errorlevel 1 (
     echo ERROR: Wrong password!
     pause
@@ -30,12 +28,28 @@ attrib -R public\admin.html 2>nul
 attrib -R public\login.html 2>nul
 
 echo.
-echo [3/4] Restoring folder permissions...
-icacls "%ROOT_DIR%\app" /grant Users:(OI)(CI)F /T 2>nul
+echo [3/4] Removing deny rules...
+for /d %%D in ("%ROOT_DIR%\app\*") do (
+    if /i not "%%~nxD"=="node_modules" (
+        icacls "%%D" /remove:d Users /T 2>nul
+    )
+)
+for %%F in ("%ROOT_DIR%\app\*.*") do icacls "%%F" /remove:d Users 2>nul
+for /d %%D in ("%ROOT_DIR%\*") do (
+    if /i not "%%~nxD"=="app" (
+        icacls "%%D" /remove:d Users /T 2>nul
+    )
+)
+for %%F in ("%ROOT_DIR%\*.*") do icacls "%%F" /remove:d Users 2>nul
 
 echo.
-echo [4/4] Allowing copy/delete operations...
-icacls "%ROOT_DIR%" /grant Users:(OI)(CI)F /T 2>nul
+echo [4/4] Restoring full permissions...
+for /d %%D in ("%ROOT_DIR%\app\*") do (
+    if /i not "%%~nxD"=="node_modules" (
+        icacls "%%D" /grant Users:(OI)(CI)F /T 2>nul
+    )
+)
+for %%F in ("%ROOT_DIR%\app\*.*") do icacls "%%F" /grant Users:F 2>nul
 
 echo.
 echo ========================================

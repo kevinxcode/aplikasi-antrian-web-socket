@@ -55,7 +55,7 @@ data += b'\n\n\n'
 data += b'\x1D\x56\x00'  # Cut
 
 # Save to temp file
-temp_file = os.path.join(os.path.dirname(__file__), 'temp_print.prn')
+temp_file = os.path.join(tempfile.gettempdir(), 'temp_print.prn')
 with open(temp_file, 'wb') as f:
     f.write(data)
 

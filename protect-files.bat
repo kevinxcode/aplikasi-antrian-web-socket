@@ -31,11 +31,21 @@ attrib +R public\login.html 2>nul
 
 echo.
 echo [3/4] Restricting folder write access...
-icacls "%ROOT_DIR%\app" /deny Users:(W,M) 2>nul
+for /d %%D in ("%ROOT_DIR%\app\*") do (
+    if /i not "%%~nxD"=="node_modules" (
+        icacls "%%D" /deny Users:(W,M) /T 2>nul
+    )
+)
+for %%F in ("%ROOT_DIR%\app\*.*") do icacls "%%F" /deny Users:(W,M) 2>nul
 
 echo.
 echo [4/4] Blocking copy/delete operations...
-icacls "%ROOT_DIR%" /deny Users:(DE,DC) 2>nul
+for /d %%D in ("%ROOT_DIR%\*") do (
+    if /i not "%%~nxD"=="app" (
+        icacls "%%D" /deny Users:(DE,DC) /T 2>nul
+    )
+)
+for %%F in ("%ROOT_DIR%\*.*") do icacls "%%F" /deny Users:(DE,DC) 2>nul
 
 echo.
 echo ========================================
