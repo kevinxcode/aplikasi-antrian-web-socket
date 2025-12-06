@@ -22,6 +22,7 @@
     "node-fetch": "^2.7.0",
     "node-thermal-printer": "^4.5.0",
     "pg": "^8.11.3",
+    "read": "^5.0.1",
     "socket.io": "^4.7.2"
   },
   "devDependencies": {

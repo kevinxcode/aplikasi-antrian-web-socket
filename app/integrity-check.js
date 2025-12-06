@@ -1,8 +1,8 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
-const readline = require('readline');
 const { verifyPassword } = require('./password-config');
+const { read } = require('read');
 
 const protectedFiles = {
   'index.js': '',
@@ -60,39 +60,16 @@ function checkIntegrity() {
 }
 
 async function promptPassword(action) {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
-
-  return new Promise((resolve) => {
-    process.stdout.write(`Enter password to ${action}: `);
-    
-    const stdin = process.stdin;
-    stdin.setRawMode(true);
-    stdin.resume();
-    stdin.setEncoding('utf8');
-    
-    let password = '';
-    
-    stdin.on('data', (char) => {
-      if (char === '\n' || char === '\r' || char === '\u0004') {
-        stdin.setRawMode(false);
-        stdin.pause();
-        process.stdout.write('\n');
-        rl.close();
-        resolve(password);
-      } else if (char === '\u0003') {
-        process.exit();
-      } else if (char === '\u007f' || char === '\b') {
-        if (password.length > 0) {
-          password = password.slice(0, -1);
-          process.stdout.write('\b \b');
-        }
-      } else {
-        password += char;
-        process.stdout.write('*');
-      }
+  return new Promise((resolve, reject) => {
+    read({
+      prompt: `Enter password to ${action}: `,
+      silent: true,
+      replace: '*',
+      input: process.stdin,
+      output: process.stdout
+    }, (err, password) => {
+      if (err) reject(err);
+      else resolve(password);
     });
   });
 }
