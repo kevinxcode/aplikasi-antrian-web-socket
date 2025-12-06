@@ -75,6 +75,10 @@ socket.on('connect', () => {
 });
 
 async function ambilNomor(type) {
+    const button = event.target.closest('.queue-button');
+    button.classList.add('loading');
+    button.disabled = true;
+    
     try {
         const response = await fetch('/api/add-queue', {
             method: 'POST',
@@ -111,6 +115,9 @@ async function ambilNomor(type) {
         }
     } catch (error) {
         showErrorModal('Gagal mengambil nomor antrian');
+    } finally {
+        button.classList.remove('loading');
+        button.disabled = false;
     }
 }
 
