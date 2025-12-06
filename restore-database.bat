@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo   RESTORE DATABASE
+echo   DROP AND RESTORE DATABASE
 echo ========================================
 echo.
 
@@ -23,36 +23,34 @@ if not exist "%BACKUP_FILE%" (
     exit /b 1
 )
 
-echo Restoring from: %BACKUP_FILE%
+echo File: %BACKUP_FILE%
 echo.
-echo WARNING: This will overwrite current database!
+echo WARNING: This will DROP and RESTORE database!
+echo All current data will be lost!
+echo.
 pause
 
 echo.
-echo Dropping existing database...
-docker exec -t antrian-postgres psql -U antrian -d postgres -c "DROP DATABASE IF EXISTS antrian_db;"
+echo [1/3] Stopping application...
+docker stop antrian-app
 
-echo Creating new database...
-docker exec -t antrian-postgres psql -U antrian -d postgres -c "CREATE DATABASE antrian_db;"
+echo [2/3] Restoring database (drop + create + data)...
+docker exec -i antrian-postgres psql -U antrian -d postgres < "%BACKUP_FILE%"
 
-echo Restoring data...
-docker exec -i antrian-postgres psql -U antrian -d antrian_db < "%BACKUP_FILE%"
+echo [3/3] Starting application...
+docker start antrian-app
 
 if %errorlevel% equ 0 (
     echo.
     echo ========================================
     echo   RESTORE SUCCESS
     echo ========================================
-    echo.
-    echo Restarting application...
-    docker restart antrian-app
-    echo.
 ) else (
     echo.
     echo ========================================
     echo   RESTORE FAILED
     echo ========================================
-    echo.
 )
 
+echo.
 pause

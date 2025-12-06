@@ -10,7 +10,7 @@ set BACKUP_FILE=%BACKUP_FILE: =0%
 echo Creating backup: %BACKUP_FILE%
 echo.
 
-docker exec -t antrian-postgres pg_dump -U antrian -d antrian_db > %BACKUP_FILE%
+docker exec -t antrian-postgres pg_dump -U antrian -d antrian_db --clean --if-exists --create > %BACKUP_FILE%
 
 if %errorlevel% equ 0 (
     echo.
