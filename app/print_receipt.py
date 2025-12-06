@@ -36,6 +36,7 @@ data = b'\x1B\x40'  # Init
 data += b'\x1B\x61\x01'  # Center
 # data += b'\x1B\x45\x01' + settings['title'].encode('utf-8') + b'\x1B\x45\x00\n'
 data += b'\x1D\x21\x01' + settings['title'].encode('utf-8') + b'\n' + b'\x1D\x21\x00'
+
 data += b'\x1B\x45\x00\x1B\x21\x00'+ b'\n'
 data += settings['address'].encode('utf-8') + b'\n'
 data += line.encode('utf-8') + b'\n'
