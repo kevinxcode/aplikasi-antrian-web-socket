@@ -130,7 +130,7 @@ async function initDB() {
         // Insert default printer settings
         await client.query(`
             INSERT INTO printer_settings (title, address, footer, paper_size, use_qz_tray, qz_printer_name)
-            SELECT 'BTN Syariah', 'Jl. Sopo Del No 56 Jakarta Selatan', '', '58mm', FALSE, ''
+            SELECT 'BTN Syariah', 'Jl. abc d No 000 Jakarta Selatan', '', '58mm', FALSE, ''
             WHERE NOT EXISTS (SELECT 1 FROM printer_settings LIMIT 1)
         `);
         
